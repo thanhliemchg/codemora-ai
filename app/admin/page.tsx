@@ -16,7 +16,7 @@ setTeachers(data)
 
 }
 
-async function activate(id){
+async function activate(id: string){
 
 await fetch("/api/activate-user",{
 
