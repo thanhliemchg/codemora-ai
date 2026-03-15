@@ -70,11 +70,11 @@ if(score>0.8){
 results.push({
 
 s1:{
-student_name:data[i].users?.name
+student_name:data[i].users?.[0]?.name
 },
 
 s2:{
-student_name:data[j].users?.name
+student_name:data[j].users?.[0]?.name
 },
 
 score
