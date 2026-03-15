@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import bcrypt from "bcryptjs"
-const hashed = await bcrypt.hash(password, 10)
+
 export async function POST(req:Request){
 
 const { name,email,password,role,class_id } = await req.json()
+
+const hashed = await bcrypt.hash(password,10)
+
 const { data:exist } = await supabase
 .from("users")
 .select("id")
@@ -16,13 +19,14 @@ return NextResponse.json({
 exists:true
 })
 }
+
 const { data,error } = await supabase
 .from("users")
 .insert([
 {
 name,
 email,
-password,
+password: hashed,
 role:"student",
 class_id,
 status:"pending"
@@ -30,9 +34,9 @@ status:"pending"
 ])
 
 if(error){
-return Response.json({error})
+return NextResponse.json(error)
 }
 
-return Response.json({success:true})
+return NextResponse.json({success:true})
 
 }
