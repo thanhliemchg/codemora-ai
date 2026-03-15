@@ -61,7 +61,7 @@ const exerciseIds = subs
 Lấy đề bài giáo viên giao
 ========================= */
 
-let exercises = []
+let exercises: any[] = []
 
 if(exerciseIds.length>0){
 
