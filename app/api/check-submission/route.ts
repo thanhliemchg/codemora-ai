@@ -11,7 +11,7 @@ const { data } = await supabase
 .eq("class_id",class_id)
 
 return Response.json({
-submitted: data.length > 0
+submitted: data?.length > 0
 })
 
 }
