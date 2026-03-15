@@ -43,7 +43,9 @@ const [aiPrompt,setAiPrompt] = useState("")
 const [exerciseMode,setExerciseMode]=useState("manual")
 const [preview,setPreview] = useState(false)
 const [scores,setScores] = useState<any>({})
-const [selectedSubmission,setSelectedSubmission] = useState(null)
+
+const [selectedSubmission,setSelectedSubmission] = useState<any>(null)
+
 const [teacherScore,setTeacherScore] = useState("")
 const [teacherFeedback,setTeacherFeedback] = useState("")
 
