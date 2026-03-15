@@ -40,7 +40,7 @@ const text = response.text
 let result
 
 try{
-result = JSON.parse(text)
+result = JSON.parse(text || "{}")
 }catch{
 result = {
 score: 0,
