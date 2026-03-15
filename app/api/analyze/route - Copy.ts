@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { ai } from "@/lib/ai";
 import { supabase } from "@/lib/supabase";
 
@@ -7,16 +5,21 @@ export async function POST(req: Request) {
 
   try {
 
-    const { code, language, student_id, class_id } = await req.json();
+    const { code, language, student_id } = await req.json();
 
     const prompt = `
 Bạn là giáo viên Tin học THPT.
+
 Phân tích code ${language} ngắn gọn:
+
 1. lỗi cú pháp
 2. lỗi logic
 3. gợi ý sửa
 4. Big-O
+5. điểm (0-10)
+
 Trả lời tối đa 6 dòng.
+
 Code:
 ${code}
 `;
@@ -33,21 +36,12 @@ ${code}
     await supabase.from("code_history").insert([
       {
         student_id,
-        class_id,
         code,
         language,
         ai_feedback: text
       }
     ]);
-    await supabase.from("code_history").insert([
-    {
-    student_id,
-    class_id,
-    code,
-    language,
-    ai_feedback: text
-    }
-    ])
+
     return Response.json({
       result: text
     });
@@ -63,5 +57,3 @@ ${code}
   }
 
 }
-
-

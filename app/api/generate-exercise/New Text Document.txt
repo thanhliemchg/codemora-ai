@@ -1,0 +1,49 @@
+import { GoogleGenAI } from "@google/genai";
+
+export async function POST(req: Request) {
+
+  const { code, language } = await req.json();
+
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GOOGLE_API_KEY!
+  });
+
+  const prompt = `
+Bạn là giáo viên Tin học.
+
+Dựa vào code ${language} của học sinh,
+hãy tạo 1 bài tập cùng mức độ.
+
+Không đưa lời giải.
+
+Format:
+
+Bài toán:
+...
+
+Input:
+...
+
+Output:
+...
+
+Gợi ý:
+...
+
+Code của học sinh:
+${code}
+`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt
+  });
+
+  const text =
+    response.candidates?.[0]?.content?.parts?.[0]?.text || "Không tạo được bài tập";
+
+  return Response.json({
+    result: text
+  });
+
+}
