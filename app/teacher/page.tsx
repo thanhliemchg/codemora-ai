@@ -159,7 +159,7 @@ router.push(`/teacher?tab=${t}`)
 }
 }
 
-function chooseClass(id,name){
+function chooseClass(id:string,name:string){
 
 setSelectedClass(id)
 setSelectedClassName(name)
