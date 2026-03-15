@@ -1,4 +1,4 @@
-export default function AIFeedback({result}){
+export default function AIFeedback({result}:{result:any}){
 
 return(
 
