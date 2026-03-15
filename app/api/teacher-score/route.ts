@@ -22,7 +22,7 @@ const { data:submission } = await supabase
 .eq("id",submission_id)
 .single()
 
-if(submission.status!=="submitted"){
+if(!submission || submission.status!=="submitted"){
 return NextResponse.json({
 error:"Bài chưa nộp, không thể chấm điểm"
 })
