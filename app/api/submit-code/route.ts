@@ -212,9 +212,9 @@ model:"gemini-2.5-flash",
 contents:prompt
 })
 
-const text = response.text
+const text = response.text || ""
 
-const clean = text
+const clean = text || ""
 .replace(/```json/g,"")
 .replace(/```/g,"")
 .trim()
