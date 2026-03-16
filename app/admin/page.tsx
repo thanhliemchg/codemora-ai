@@ -4,7 +4,7 @@ import { useState,useEffect } from "react"
 
 export default function Admin(){
 
-const [teachers,setTeachers] = useState([])
+const [teachers,setTeachers] = useState<any>([])
 
 async function loadTeachers(){
 
@@ -12,7 +12,7 @@ const res = await fetch("/api/pending-teachers")
 
 const data = await res.json()
 
-setTeachers(data)
+setTeachers(data || [])
 
 }
 
@@ -50,7 +50,7 @@ window.location.href="/"
 return
 }
 
-setUser(user)
+//setUser(user)
 
 },[])
 

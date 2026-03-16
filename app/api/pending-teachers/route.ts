@@ -12,6 +12,6 @@ if (error){
     console.error(error)
     return Response.json([])
 }
-return Response.json(data)
+return Response.json(data || [])
 
 }
