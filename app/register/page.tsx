@@ -73,7 +73,7 @@ return
 
 if(data.success){
 
-alert("Đăng ký thành công")
+alert("Đăng ký thành công, chờ giáo viên kích hoạt tài khoản")
 
 router.push("/login")
 

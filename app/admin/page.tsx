@@ -50,7 +50,7 @@ window.location.href="/"
 return
 }
 
-//setUser(user)
+setUser(user)
 
 },[])
 
