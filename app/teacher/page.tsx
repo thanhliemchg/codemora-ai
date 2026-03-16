@@ -18,7 +18,6 @@ export default function Page(){
     </Suspense>
   )
 }
-
 export default function Teacher(){
 const router = useRouter()
 const searchParams = useSearchParams()
