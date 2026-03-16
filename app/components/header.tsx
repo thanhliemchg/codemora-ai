@@ -35,7 +35,7 @@ CodeMora AI
 <div className="flex gap-4 items-center">
 
 <span>
-👤 {user?.name}
+👤 {user?.name} ({user?.role})
 </span>
 
 <button
@@ -52,3 +52,5 @@ className="bg-red-500 px-3 py-1 rounded"
 )
 
 }
+
+

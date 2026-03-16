@@ -4,6 +4,7 @@ import { useState,useEffect } from "react"
 import CodeEditor from "../components/CodeEditor"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import ChangePassword from "../components/ChangePassword"
 
 export default function Student(){
 
@@ -30,7 +31,7 @@ const [submitted,setSubmitted] = useState(false)
 
 const [history,setHistory] = useState<any[]>([])
 const [selectedHistory,setSelectedHistory] = useState<any>(null)
-
+const [showPassword,setShowPassword] = useState(false)
 
 
 /* ======================
@@ -383,20 +384,20 @@ return(
 
 {/* SIDEBAR */}
 
-<div className="w-[250px] bg-gradient-to-b from-indigo-700 to-purple-700 text-white p-6 flex flex-col">
+<div className="w-[250px] bg-gradient-to-b from-indigo-500 to-purple-600 text-white p-6 flex flex-col shadow-x1">
 
 <h2 className="text-2xl font-bold mb-10">
 CodeMora AI
 </h2>
 
-<ul className="space-y-3">
+<ul className="space-y-2">
 
 <li
 onClick={()=>setTab("dashboard")}
-className={`p-3 rounded-lg cursor-pointer transition ${
+className={`p-3 rounded-lg cursor-pointer transition whitespace-nowrap ${
 tab==="dashboard"
-? "bg-white text-indigo-700 font-semibold"
-: "hover:bg-indigo-600"
+? "bg-white/20 text-white font-semibold"
+: "hover:bg-white/20"
 }`}
 >
 🏠 Trang chủ
@@ -404,24 +405,24 @@ tab==="dashboard"
 
 <li
 onClick={()=>setTab("history")}
-className={`p-3 rounded-lg cursor-pointer transition ${
+className={`p-3 rounded-lg cursor-pointer transition whitespace-nowrap ${
 tab==="history"
-? "bg-white text-indigo-700 font-semibold"
-: "hover:bg-indigo-600"
+? "bg-white/20 text-white font-semibold"
+: "hover:bg-white/20"
 }`}
 >
-📚 Lịch sử làm bài
+📄 Lịch sử
 </li>
 
 <li
 onClick={()=>setTab("exercise")}
-className={`p-3 rounded-lg cursor-pointer transition ${
+className={`p-3 rounded-lg cursor-pointer transition whitespace-nowrap ${
 tab==="exercise"
-? "bg-white text-indigo-700 font-semibold"
-: "hover:bg-indigo-600"
+? "bg-white/20 text-white font-semibold"
+: "hover:bg-white/20"
 }`}
 >
-🧠 Bài tập AI
+💬 Bài tập AI
 </li>
 
 </ul>
@@ -436,23 +437,29 @@ Hệ thống chấm bài AI
 
 {/* MAIN */}
 
-<div className="flex-1 p-6">
+<div className="min-h-screen bg-gray-100 text-gray-800 w-full max-w-7x1 ">
 
-<div className="flex justify-between items-center mb-6">
+<div className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-x1">
 
-<h1 className="text-xl font-bold text-black">
-TRANG HỌC SINH
+<h1 className="font-bold text-xl text-white">
+🚀 CodeMora AI
 </h1>
 
-<div className="flex items-center gap-4">
+<div className="flex items-center">
 
-<span className="text-black">
+<span
+onClick={()=>setShowPassword(true)}
+className="mr-4 bg-white/20 text-white px-3 py-1 rounded-full text-sm font-semibold cursor-pointer"
+>
 👤 {user?.name}
 </span>
 
 <button
-onClick={logout}
-className="bg-red-500 text-white px-3 py-1 rounded"
+onClick={()=>{
+localStorage.removeItem("user")
+window.location.href="/login"
+}}
+className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
 >
 Đăng xuất
 </button>
@@ -460,7 +467,24 @@ className="bg-red-500 text-white px-3 py-1 rounded"
 </div>
 
 </div>
+{showPassword && (
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
 
+<div className="bg-white p-6 rounded-xl">
+
+<ChangePassword/>
+
+<button
+onClick={()=>setShowPassword(false)}
+className="mt-3 bg-gray-300 px-3 py-1 rounded"
+>
+Đóng
+</button>
+
+</div>
+
+</div>
+)}
 
 
 {/* ================= DASHBOARD ================= */}
@@ -590,10 +614,10 @@ AI Feedback
 <div className="mt-8 bg-white rounded shadow p-4 text-black">
 
 <h2 className="font-bold text-lg mb-4">
-📚 Lịch sử làm bài
+📄 Lịch sử làm bài
 </h2>
 
-<div className="flex gap-6 mb-4">
+<div className=" flex gap-6 mb-4">
 
 <div className="bg-blue-100 px-3 py-2 rounded">
 Tổng bài: {history.length}
@@ -612,7 +636,7 @@ Chờ chấm: {history.filter(h=>h.status!=="graded").length}
 <table className="w-full border text-sm text-black">
 
 <thead className="bg-gray-100">
-<tr>
+<tr className="border-t hover:bg-gray-50">
 <th className="border p-2">#</th>
 <th className="border p-2">Loại</th>
 <th className="border p-2">AI</th>

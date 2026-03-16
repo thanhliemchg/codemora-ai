@@ -8,7 +8,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useRef } from "react"
 import mammoth from "mammoth"
 import TurndownService from "turndown"
-
+import Header from "../components/header"
+import ChangePassword from "../components/ChangePassword"
 export default function Teacher(){
 const router = useRouter()
 const searchParams = useSearchParams()
@@ -51,7 +52,7 @@ const [teacherFeedback,setTeacherFeedback] = useState("")
 
 const [filter,setFilter] = useState("submitted")
 const [statusFilter,setStatusFilter] = useState("all")
-
+const [showPassword,setShowPassword] = useState(false)
 const totalAll = submissions.length
 
 const totalSubmitted = submissions.filter(s=>s.status==="submitted").length
@@ -583,15 +584,18 @@ return(
 
 <div className="min-h-screen bg-gray-900 text-white">
 
-<div className="flex justify-between px-8 py-4 bg-gray-800">
+<div className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow">
 
-<h1 className="font-bold text-xl">
-CodeMora AI - Teacher
+<h1 className="font-bold text-xl text-white">
+🚀 CodeMora AI
 </h1>
 
-<div>
+<div className="flex items-center">
 
-<span className="mr-4">
+<span
+onClick={()=>setShowPassword(true)}
+className="mr-4 bg-white/20 text-white px-3 py-1 rounded-full text-sm font-semibold cursor-pointer"
+>
 👤 {user?.name}
 </span>
 
@@ -600,7 +604,7 @@ onClick={()=>{
 localStorage.removeItem("user")
 window.location.href="/login"
 }}
-className="bg-red-500 px-3 py-1 rounded"
+className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
 >
 Đăng xuất
 </button>
@@ -608,6 +612,24 @@ className="bg-red-500 px-3 py-1 rounded"
 </div>
 
 </div>
+{showPassword && (
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+
+<div className="bg-white p-6 rounded-xl">
+
+<ChangePassword/>
+
+<button
+onClick={()=>setShowPassword(false)}
+className="mt-3 bg-gray-300 px-3 py-1 rounded"
+>
+Đóng
+</button>
+
+</div>
+
+</div>
+)}
 
 <div className="flex">
 
