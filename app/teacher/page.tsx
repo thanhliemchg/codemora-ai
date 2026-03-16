@@ -8,6 +8,16 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useRef } from "react"
 import mammoth from "mammoth"
 import TurndownService from "turndown"
+import { Suspense } from "react"
+import TeacherPage from "./TeacherPage"
+
+export default function Page(){
+  return (
+    <Suspense>
+      <TeacherPage/>
+    </Suspense>
+  )
+}
 
 export default function Teacher(){
 const router = useRouter()
