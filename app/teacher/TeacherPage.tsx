@@ -771,10 +771,7 @@ Học sinh
 </button>
 
 <button
-onClick={()=>{
-changeTab("submissions")
-chooseClass(c.id,c.name)
-}}
+onClick={()=>loadSubmissions(c.id,c.name)}
 className="bg-green-500 px-2 py-1 rounded mr-2"
 >
 Bài nộp
