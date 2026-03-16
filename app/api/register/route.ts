@@ -27,7 +27,7 @@ const { data,error } = await supabase
 name,
 email,
 password: hashed,
-role:"student",
+role:role,
 class_id,
 status:"pending"
 }
