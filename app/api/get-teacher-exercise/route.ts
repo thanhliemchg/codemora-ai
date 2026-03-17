@@ -12,10 +12,10 @@ const { searchParams } = new URL(req.url)
 const student_id = searchParams.get("student_id")
 
 if(!student_id){
-return NextResponse.json({})
+return NextResponse.json([])
 }
 
-/* LẤY CLASS HS */
+/* LẤY CLASS */
 
 const { data:user } = await supabase
 .from("users")
@@ -24,42 +24,44 @@ const { data:user } = await supabase
 .maybeSingle()
 
 if(!user){
-return NextResponse.json({})
+return NextResponse.json([])
 }
 
 const class_id = user.class_id
 
 
-/* LẤY BÀI GV GIAO MỚI NHẤT */
+/* 🔥 LẤY TẤT CẢ BÀI GV GIAO */
 
-const { data:exercise } = await supabase
+const { data:exercises } = await supabase
 .from("generated_exercises")
 .select("*")
 .eq("class_id",class_id)
 .order("created_at",{ascending:false})
-.limit(1)
-.maybeSingle()
 
-if(!exercise){
-return NextResponse.json({})
+if(!exercises){
+return NextResponse.json([])
 }
 
 
-/* KIỂM TRA HS ĐÃ NỘP CHƯA */
+/* 🔥 LẤY DANH SÁCH ĐÃ NỘP */
 
-const { data:submission } = await supabase
+const { data:submitted } = await supabase
 .from("submissions")
-.select("id")
+.select("exercise_id")
 .eq("student_id",student_id)
-.eq("exercise_id",exercise.id)
 .eq("type","teacher")
-.maybeSingle()
+
+const submittedIds = submitted?.map(s=>s.exercise_id) || []
 
 
-if(submission){
-return NextResponse.json({})
-}
+/* 🔥 GẮN TRẠNG THÁI */
 
-return NextResponse.json(exercise)
+const result = exercises.map(ex => ({
+...ex,
+submitted: submittedIds.includes(ex.id)
+}))
+
+
+return NextResponse.json(result)
 
 }

@@ -306,7 +306,6 @@ code,
 language,
 type:type,
 status:"submitted",
-exercise_text,
 ai_score,
 ai_feedback
 })
@@ -329,7 +328,6 @@ code,
 language,
 type:type,
 status:"submitted",
-exercise_text,
 ai_score,
 ai_feedback
 })

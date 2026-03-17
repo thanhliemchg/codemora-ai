@@ -2,45 +2,48 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function POST(req:Request){
+export async function POST(req: Request){
 
-const body = await req.json()
+  const { submission_id, teacher_score, teacher_feedback } = await req.json()
 
-const { submission_id, teacher_score, teacher_feedback } = body
+  // ❌ bắt buộc nhập điểm
+  if(teacher_score === "" || teacher_score === null){
+    return NextResponse.json({
+      success:false,
+      error:"Chưa nhập điểm"
+    })
+  }
 
-if(!submission_id){
-return NextResponse.json({error:"Thiếu submission_id"})
-}
+  const score = Number(teacher_score)
 
-const { data:submission } = await supabase
-.from("submissions")
-.select("status")
-.eq("id",submission_id)
-.single()
+  if(isNaN(score) || score < 0 || score > 10){
+    return NextResponse.json({
+      success:false,
+      error:"Điểm không hợp lệ"
+    })
+  }
 
-if(!submission || submission.status!=="submitted"){
-return NextResponse.json({
-error:"Bài chưa nộp, không thể chấm điểm"
-})
-}
+  const { error } = await supabase
+    .from("submissions")
+    .update({
+      teacher_score: score,
+      teacher_feedback: teacher_feedback || "",
+      status: "graded"
+    })
+    .eq("id", submission_id)
 
-const { error } = await supabase
-.from("submissions")
-.update({
-teacher_score,
-teacher_feedback,
-status:"graded"
-})
-.eq("id",submission_id)
+  if(error){
+    return NextResponse.json({
+      success:false,
+      error:error.message
+    })
+  }
 
-if(error){
-return NextResponse.json({error:error.message})
-}
-
-return NextResponse.json({success:true})
-
+  return NextResponse.json({
+    success:true
+  })
 }

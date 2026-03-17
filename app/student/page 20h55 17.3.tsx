@@ -7,10 +7,9 @@ import remarkGfm from "remark-gfm"
 import ChangePassword from "../components/ChangePassword"
 
 export default function Student(){
+
 const [teacherExercise,setTeacherExercise] = useState("")
 const [teacherExerciseId,setTeacherExerciseId] = useState<string | null>(null)
-const [teacherExercises,setTeacherExercises] = useState<any[]>([])
-const [selectedExercise,setselectedExercise] = useState<any>(null)
 
 const [code,setCode] = useState("")
 const [language,setLanguage] = useState("python")
@@ -34,12 +33,7 @@ const [history,setHistory] = useState<any[]>([])
 const [selectedHistory,setSelectedHistory] = useState<any>(null)
 const [showPassword,setShowPassword] = useState(false)
 
-const current = teacherExercises.find(e=>e.id===teacherExerciseId)
-const currentTeacherExercise = teacherExercises.find(
-  e => e.id === teacherExerciseId
-)
 
-const isSubmittedCurrent = currentTeacherExercise?.submitted
 /* ======================
 PHÂN TÍCH CODE
 ====================== */
@@ -124,46 +118,30 @@ SINH BÀI TẬP
 
 async function generateExercise(){
 
-/* ======================
-BẮT BUỘC CHỌN BÀI GV
-====================== */
-if(!teacherExerciseId){
-
-  alert("❌ Hãy chọn bài bên phải")
-
-  // 🔥 scroll tới danh sách bài
-  document.getElementById("teacher-list")?.scrollIntoView({
-    behavior:"smooth"
-  })
-
-  return
-}
-
-
-
-/* ======================
-PHẢI CÓ CODE HOẶC BÀI GV
-====================== */
-
 if(!code && !teacherExercise){
-  alert("Bạn cần nhập code hoặc chọn bài giáo viên giao")
-  return
+
+alert("Lỗi sinh bài tập! Bạn cần nhập code hoặc có bài giáo viên giao")
+
+return
+
 }
 
 setLoadingExercise(true)
 
 const res = await fetch("/api/generate-similar-exercise",{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json"
-  },
-  body:JSON.stringify({
-    code,
-    teacherExercise,
-    exercise_id: teacherExerciseId,
-    student_id:user.id,
-    class_id:user.class_id
-  })
+
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+code,
+teacherExercise,
+student_id:user.id,
+class_id:user.class_id
+})
+
 })
 
 const data = await res.json()
@@ -171,13 +149,18 @@ const data = await res.json()
 setLoadingExercise(false)
 
 if(data.error){
-  alert(data.error)
-  return
+
+alert(data.error)
+
+return
+
 }
 
 setExercise(data.exercise)
 
 }
+
+
 
 /* ======================
 LOAD HISTORY
@@ -214,8 +197,22 @@ const user = JSON.parse(u)
 const res = await fetch(`/api/get-teacher-exercise?student_id=${user.id}`)
 const data = await res.json()
 
-// 🔥 QUAN TRỌNG
-setTeacherExercises(data)
+const ex =
+data.exercise ||
+data.generated_exercises?.exercise
+
+const id =
+data.generated_exercises?.id ||
+data.exercise_id ||
+data.id
+
+if(ex){
+
+setTeacherExercise(ex)
+setTeacherExerciseId(id)
+setSubmitType("teacher")
+
+}
 
 }
 
@@ -252,50 +249,36 @@ NOP BAI
 async function submitCode(){
 
 if(!code || code.trim()===""){
-  alert("Bạn chưa nhập code")
-  return
+alert("Bạn chưa nhập code")
+return
 }
 
-
 if(submitType==="teacher" && !teacherExerciseId){
-  alert("Bạn phải chọn bài giáo viên giao ở bên phải")
-  return
+alert("Không có bài giáo viên giao")
+return
 }
 
 if(submitType==="practice" && (!exercise || exercise.trim()==="")){
-  alert("Bạn chưa sinh bài tập")
-  return
+alert("Bạn chưa sinh bài tập")
+return
 }
 
 setSubmitting(true)
 
-
-console.log("Submit:",{
-  student_id:user.id,
-  exercise_id: teacherExerciseId,
-  type: submitType
-})
-
 const res = await fetch("/api/submit-code",{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json"
-  },
-  body: JSON.stringify({
-    student_id:user.id,
-    class_id:user.class_id,
-
-    
-    exercise_id: submitType==="teacher" ? teacherExerciseId : null,
-
-    code: code,
-    language: language,
-
-  
-    type: submitType==="teacher" ? "teacher" : "practice",
-
-    exercise_text: submitType==="teacher" ? null : exercise
-  })
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body: JSON.stringify({
+student_id:user.id,
+class_id:user.class_id,
+exercise_id: teacherExerciseId || null,
+code: code,
+language: language,
+type: teacherExerciseId ? "teacher" : "practice",
+exercise_text: teacherExerciseId ? null : exercise
+})
 })
 
 const data = await res.json()
@@ -303,42 +286,47 @@ const data = await res.json()
 setSubmitting(false)
 
 if(data.error){
-  alert(data.error)
-  return
+alert(data.error)
+return
 }
 
 if(data.message==="Nộp bài thành công"){
 
-  setSubmitted(true)
+setSubmitted(true)
 
-  /* ======================
-  FIX UI NGAY LẬP TỨC
-  ===================== */
+await fetch("/api/history",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+student_id:user.id,
+class_id:user.class_id,
+exercise: submitType==="teacher" ? teacherExercise : exercise,
+code:code,
+language:language,
+type:submitType
+})
+})
 
-  if(submitType==="teacher"){
+if(submitType==="teacher"){
 
-    // 🔥 update trạng thái ngay
-    setTeacherExercises(prev =>
-      prev.map(ex =>
-        ex.id === teacherExerciseId
-          ? { ...ex, submitted: true }
-          : ex
-      )
-    )
+setTeacherExercise("")
+setTeacherExerciseId(null)
 
-    alert("Đã nộp bài giáo viên giao")
+alert("Đã nộp bài giáo viên giao")
 
-  }else{
+}else{
 
-    setExercise("")
-    alert("Đã nộp bài tự sinh")
+setExercise("")
+alert("Đã nộp bài tự sinh")
 
-  }
-
-  /* reload data */
-  await loadTeacherExercise()
-  loadHistory()
 }
+
+loadHistory()
+
+}
+
 }
 
 
@@ -425,7 +413,7 @@ tab==="history"
 >
 📄 Lịch sử
 </li>
-{/*
+
 <li
 onClick={()=>setTab("exercise")}
 className={`p-3 rounded-lg cursor-pointer transition whitespace-nowrap ${
@@ -436,7 +424,7 @@ tab==="exercise"
 >
 💬 Bài tập AI
 </li>
-*/}
+
 </ul>
 
 <div className="mt-auto pt-10 text-sm opacity-80">
@@ -498,8 +486,8 @@ className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
 
 </div>
 )}
-{/* ================= DASHBOARD ================= */}
 
+{/* ================= DASHBOARD ================= */}
 
 {tab==="dashboard" && (
 
@@ -530,17 +518,8 @@ Loại bài nộp:
 className="border p-2 mb-4 text-black"
 value={submitType}
 onChange={(e)=>{
-  const type = e.target.value
-
-  setSubmitType(type)
-
-
-  setSubmitted(false)
-
-  if(type==="practice"){
-    setTeacherExerciseId(null)  
-    setTeacherExercise("")    
-  }
+setSubmitType(e.target.value)
+setSubmitted(false)
 }}
 >
 <option value="teacher">Bài giáo viên giao</option>
@@ -553,51 +532,20 @@ onChange={(e)=>{
 
 <div className="flex gap-3 mt-4">
 
-<button onClick={analyze} className={`
-px-4 py-2 rounded text-white font-semibold transition
-${loadingAnalyze 
-  ? "bg-gray-400 cursor-not-allowed"
-  : "bg-yellow-600 hover:bg-green-700"}
-`}
->
+<button onClick={analyze} className="bg-indigo-600 text-white px-4 py-2 rounded">
 {loadingAnalyze ? "Đang phân tích..." : "Phân tích AI"}
 </button>
 
-<button
-  type="button"
-  onClick={generateExercise}
-  className={`
-px-4 py-2 rounded text-white font-semibold transition
-${loadingExercise 
-  ? "bg-gray-400 cursor-not-allowed"
-  : "bg-blue-600 hover:bg-blue-700"}
-`}
->
-{loadingExercise ? "⏳ Đang sinh..." : "💬 Sinh bài tập"}
+<button onClick={generateExercise} className="bg-purple-600 text-white px-4 py-2 rounded">
+{loadingExercise ? "Đang sinh..." : "Sinh bài tập"}
 </button>
 
-
-<button
+<button disabled={submitted || submitting}
+className="bg-green-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
 onClick={submitCode}
-disabled={submitting || (submitType==="teacher" && isSubmittedCurrent)}
-className={`
-px-4 py-2 rounded text-white font-semibold transition
-${submitting || (submitType==="teacher" && isSubmittedCurrent)
-  ? "bg-gray-400 cursor-not-allowed"
-  : "bg-green-600 hover:bg-green-700"}
-`}
 >
-{submitting 
-  ? "⏳ Đang nộp..." 
-  : (submitType==="teacher" && isSubmittedCurrent)
-    ? "✅ Đã nộp"
-    : "📤 Nộp bài"}
+{submitting ? "Đang nộp..." : submitted ? "Đã nộp" : "Nộp bài"}
 </button>
-
-
-
-
-
 
 </div>
 
@@ -609,89 +557,19 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
 
 <div className="bg-white p-6 rounded-xl shadow">
 
-<div id="teacher-list" className="bg-yellow-100 border border-yellow-300 p-4 rounded-xl">
+<div className="bg-yellow-100 border border-yellow-400 p-3 rounded mb-3">
 
-<h2 className="font-bold text-lg mb-3">
+<div className="font-semibold text-black mb-1">
 📌 Bài giáo viên giao
-</h2>
-
-<div className="space-y-3 max-h-[300px] overflow-y-auto">
-
-{teacherExercises.map((ex:any,index:number)=>{
-
-const shortTitle = ex.exercise
-  ?.replace(/[#*]/g,"")
-  ?.split("\n")[0]
-  ?.slice(0,60)
-
-return(
-
-<div
-key={ex.id}
-onClick={()=>{
-  setTeacherExercise(ex.exercise)
-  setTeacherExerciseId(ex.id)
-  setSubmitType("teacher")
-  setSubmitted(false)
-}}
-className={`
-p-4 rounded-xl border cursor-pointer transition
-${teacherExerciseId===ex.id
-  ? "bg-indigo-50 border-indigo-400"
-  : "bg-white hover:bg-gray-50"}
-`}
->
-
-{/* HEADER */}
-<div className="flex justify-between items-center mb-1">
-
-<div className="font-semibold text-gray-800">
-📄 Bài {index+1}
 </div>
 
-<div
-className={`
-text-xs px-2 py-1 rounded
-${ex.submitted
-  ? "bg-green-100 text-green-700"
-  : "bg-red-100 text-red-600"}
-`}
->
-{ex.submitted ? "Đã nộp" : "Chưa nộp"}
-</div>
-
-</div>
-
-{/* TITLE */}
-<div className="text-sm text-gray-600 line-clamp-2">
-{shortTitle || "Bài tập lập trình"}
-</div>
-
-</div>
-
-)
-})}
-
-</div>
-
-{/* PREVIEW */}
-<div className="mt-4 bg-white p-4 rounded-xl border">
-<div className="font-semibold mb-2">
-📘 Nội dung bài
-</div>
 {teacherExercise ? (
-  <div>
-   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-    {teacherExercise}
-    </ReactMarkdown>
-  </div>
-) : (
-  <div className="text-black-400 text-sm">
-    Chọn bài để xem nội dung
-  </div>
-)}
 
-</div>
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+{teacherExercise}
+</ReactMarkdown>
+
+) : "Chưa có bài giáo viên giao"}
 
 </div>
 

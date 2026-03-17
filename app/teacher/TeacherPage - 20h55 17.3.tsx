@@ -57,11 +57,6 @@ const [teacherFeedback,setTeacherFeedback] = useState("")
 const [filter,setFilter] = useState("submitted")
 const [statusFilter,setStatusFilter] = useState("all")
 const [showPassword,setShowPassword] = useState(false)
-
-
-
-const [loadingScore,setLoadingScore] = useState(false)
-
 const totalAll = submissions.length
 
 const totalSubmitted = submissions.filter(s=>s.status==="submitted").length
@@ -654,58 +649,22 @@ const data = await res.json()
 setSubmissions(data.data || [])
 
 }
-async function saveScore(id:any, score:any){
+async function saveScore(id:any,score:any){
 
-  if(score === "" || score === null){
-    alert("❌ Vui lòng nhập điểm")
-    return
-  }
+await fetch("/api/teacher-score",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body: JSON.stringify({
+submission_id:id,
+teacher_score:score,
+teacher_feedback:teacherFeedback
+})
+})
 
-  const num = Number(score)
+await loadSubmissions(selectedClass,selectedClassName)
 
-  if(isNaN(num) || num < 0 || num > 10){
-    alert("❌ Điểm phải từ 0 → 10")
-    return
-  }
-
-  setLoadingScore(true)
-
-  try{
-
-    const res = await fetch("/api/teacher-score",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        submission_id:id,
-        teacher_score:num,
-        teacher_feedback:teacherFeedback || ""
-      })
-    })
-
-    const data = await res.json()
-
-    if(!data.success){
-      alert(data.error || "Lỗi chấm điểm ❌")
-      setLoadingScore(false)
-      return
-    }
-
-    alert("✅ Đã chấm điểm thành công")
-
-    setTeacherScore("")
-    setTeacherFeedback("")
-
-    await loadSubmissions(selectedClass,selectedClassName)
-
-  }catch(e){
-
-    alert("❌ Lỗi kết nối server")
-
-  }
-
-  setLoadingScore(false)
 }
 
 async function detectCopy(){
@@ -1680,7 +1639,7 @@ ${selectedSubmission?.id === s.id
 </td>
 
 <td className="border border-gray-600 px-4 py-2 text-center">
-{s.type="teacher" ? "GV giao" : "Tự sinh"}
+{s.exercise=!null ? "GV giao" : "Tự sinh"}
 </td>
 
 <td className="border border-gray-600 px-4 py-2 text-center">
@@ -1812,22 +1771,16 @@ value={teacherScore}
 onChange={(e)=>setTeacherScore(e.target.value)}
 />
 <button
-type="button"
-disabled={loadingScore || selectedSubmission.status !== "submitted"}
-onClick={()=>saveScore(selectedSubmission.id, teacherScore)}
-className={`
-px-4 py-2 rounded text-white font-semibold transition
-${loadingScore
-  ? "bg-gray-400 cursor-not-allowed"
-  : selectedSubmission.status === "submitted"
-    ? "bg-blue-600 hover:bg-blue-700"
-    : "bg-gray-500 cursor-not-allowed"
-}
+disabled={selectedSubmission.status!=="submitted"}
+onClick={()=>saveScore(selectedSubmission.id,teacherScore)}
+className={`px-3 py-1 rounded
+${selectedSubmission.status==="submitted"
+? "bg-blue-600"
+: "bg-gray-600 cursor-not-allowed"}
 `}
 >
-{loadingScore ? "⏳ Đang duyệt..." : "✅ Duyệt điểm"}
+Duyệt điểm và nhận xét
 </button>
-
 
 </div>
 
