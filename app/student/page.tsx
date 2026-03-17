@@ -467,16 +467,17 @@ className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
 </div>
 
 </div>
+{/* ===== MODAL ĐỔI MẬT KHẨU ===== */}
 {showPassword && (
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
-<div className="bg-white p-6 rounded-xl">
+<div className="bg-white p-6 rounded-xl w-80">
 
 <ChangePassword/>
 
 <button
 onClick={()=>setShowPassword(false)}
-className="mt-3 bg-gray-300 px-3 py-1 rounded"
+className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
 >
 Đóng
 </button>
@@ -485,7 +486,6 @@ className="mt-3 bg-gray-300 px-3 py-1 rounded"
 
 </div>
 )}
-
 
 {/* ================= DASHBOARD ================= */}
 
@@ -657,7 +657,7 @@ onClick={()=>setSelectedHistory(h)}
 <td className="border p-2 text-center">{i+1}</td>
 
 <td className="border p-2 text-center">
-{h.type==="teacher"?"GV giao":"Tự sinh"}
+{h.exercise_id!=null ? "GV giao":"Tự sinh"}
 </td>
 
 <td className="border p-2 text-center">

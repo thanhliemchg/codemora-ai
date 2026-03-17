@@ -838,16 +838,17 @@ className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
 </div>
 
 </div>
+{/* ===== MODAL ĐỔI MẬT KHẨU ===== */}
 {showPassword && (
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
-<div className="bg-white p-6 rounded-xl">
+<div className="bg-white p-6 rounded-xl w-80">
 
 <ChangePassword/>
 
 <button
 onClick={()=>setShowPassword(false)}
-className="mt-3 bg-gray-300 px-3 py-1 rounded"
+className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
 >
 Đóng
 </button>
@@ -1638,7 +1639,7 @@ ${selectedSubmission?.id === s.id
 </td>
 
 <td className="border border-gray-600 px-4 py-2 text-center">
-{s.type==="teacher" ? "GV giao" : "Tự sinh"}
+{s.exercise=!null ? "GV giao" : "Tự sinh"}
 </td>
 
 <td className="border border-gray-600 px-4 py-2 text-center">

@@ -169,14 +169,14 @@ console.log("Lỗi lấy đề bài",e)
 AI CHẤM BÀI
 ====================== */
 
-let ai_score = null
+let ai_score: number | null = null
 let ai_feedback = ""
 
 if(realExerciseText){
 
-try{
+  try{
 
-const prompt = `
+    const prompt = `
 Bạn là giáo viên lập trình.
 
 Đề bài:
@@ -186,13 +186,11 @@ Code học sinh:
 ${code}
 
 Hãy:
+1. kiểm tra đúng/sai
+2. nhận xét chi tiết
+3. cho điểm từ 0 đến 10
 
-1. kiểm tra code có đúng yêu cầu đề bài không
-2. nếu sai hãy giải thích
-3. nếu đúng hãy nhận xét chất lượng code
-4. cho điểm từ 0 đến 10
-
-Chỉ trả JSON:
+⚠️ Chỉ trả JSON THUẦN, KHÔNG markdown:
 
 {
 "score": number,
@@ -200,37 +198,88 @@ Chỉ trả JSON:
 }
 `
 
-if(isGarbageCode(code)){
+    const response = await ai.models.generateContent({
+      model:"gemini-2.5-flash",
+      contents:prompt
+    })
 
-ai_score = 0
-ai_feedback = "Code không hợp lệ hoặc không phải chương trình."
+    const text = response.text || ""
 
-}else{
+    console.log("AI RAW:", text)
 
-const response = await ai.models.generateContent({
-model:"gemini-2.5-flash",
-contents:prompt
-})
+    // =========================
+    // 1. LÀM SẠCH TEXT
+    // =========================
+    const clean = text
+      .replace(/```json/g,"")
+      .replace(/```/g,"")
+      .trim()
 
-const text = response.text || ""
+    // =========================
+    // 2. LẤY JSON TRONG TEXT
+    // =========================
+    const jsonMatch = clean.match(/\{[\s\S]*\}/)
 
-const clean = text || ""
-.replace(/```json/g,"")
-.replace(/```/g,"")
-.trim()
+    if(jsonMatch){
 
-const parsed = JSON.parse(clean)
+      try{
+        const parsed = JSON.parse(jsonMatch[0])
 
-ai_score = parsed.score
-ai_feedback = parsed.feedback
+        ai_score = Number(parsed.score)
+        ai_feedback = parsed.feedback || clean
 
-}
+      }catch{
+        console.log("Parse JSON lỗi")
+      }
 
-}catch(e){
+    }
 
-console.log("AI lỗi",e)
+    // =========================
+    // 3. NẾU KHÔNG CÓ JSON → TỰ ĐỌC ĐIỂM
+    // =========================
+    if(ai_score === null){
 
-}
+      // tìm dạng: 8/10
+      const scoreMatch = clean.match(/(\d+(\.\d+)?)\s*\/\s*10/)
+
+      if(scoreMatch){
+        ai_score = Number(scoreMatch[1])
+      }
+
+    }
+
+    // =========================
+    // 4. NẾU VẪN NULL → TÌM SỐ BẤT KỲ
+    // =========================
+    if(ai_score === null){
+
+      const numberMatch = clean.match(/\b([0-9]|10)\b/)
+
+      if(numberMatch){
+        ai_score = Number(numberMatch[1])
+      }
+
+    }
+
+    // =========================
+    // 5. FALLBACK CUỐI
+    // =========================
+    if(ai_score === null){
+      ai_score = 0
+    }
+
+    if(!ai_feedback){
+      ai_feedback = clean
+    }
+
+  }catch(e){
+
+    console.log("AI lỗi:", e)
+
+    ai_score = 0
+    ai_feedback = "AI không phản hồi"
+
+  }
 
 }
 
