@@ -10,6 +10,7 @@ import mammoth from "mammoth"
 import TurndownService from "turndown"
 import Header from "../components/header"
 import ChangePassword from "../components/ChangePassword"
+
 export default function Teacher(){
 const router = useRouter()
 const searchParams = useSearchParams()
@@ -31,12 +32,15 @@ const [copyCases,setCopyCases] = useState([])
 const [exercises,setExercises] = useState([])
 const [exercise,setExercise] = useState("")
 
+const [selectedStudents,setSelectedStudents] = useState<string[]>([])
+
 const [file,setFile] = useState<any>(null)
 
 const [fileName,setFileName] = useState("Chưa có tệp được chọn")
 
 const [selectedClass,setSelectedClass] = useState(classId || null)
 const [selectedClassName,setSelectedClassName] = useState("")
+const [loading,setLoading] = useState(false)
 
 const [user,setUser] = useState<any>(null)
 const [teacherId,setTeacherId] = useState("")
@@ -60,6 +64,8 @@ const totalSubmitted = submissions.filter(s=>s.status==="submitted").length
 const totalGraded = submissions.filter(s=>s.status==="graded").length
 
 const totalPending = submissions.filter(s=>s.status==="pending").length
+
+const [editingStudent,setEditingStudent] = useState<any>(null)
 
 useEffect(()=>{
 
@@ -322,23 +328,114 @@ loadStudents(selectedClass,selectedClassName)
 
 }
 
-function importExcel(e:any){
+async function uploadStudents(students:any){
 
-const file = e.target.files[0]
+const res = await fetch("/api/import-students",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+students,
+class_id:selectedClass
+})
+})
+
+const data = await res.json()
+
+// ❌ nếu không có dòng này là sai
+if(!data.success){
+alert("Import lỗi")
+return
+}
+
+// ✅ CHỈ export sau khi API OK
+const ws = XLSX.utils.json_to_sheet(data.accounts)
+const wb = XLSX.utils.book_new()
+
+XLSX.utils.book_append_sheet(wb, ws, "Accounts")
+
+XLSX.writeFile(wb, `tai_khoan_${selectedClassName}.xlsx`)
+
+// reload
+loadStudents(selectedClass,selectedClassName)
+
+}
+
+async function handleUpload(){
+
+if(!file){
+alert("Chọn file trước")
+return
+}
+
+setLoading(true) // 🔥 BẮT ĐẦU loading
 
 const reader = new FileReader()
 
-reader.onload = (evt)=>{
+reader.onload = async (evt:any)=>{
 
-const data = new Uint8Array(evt.target?.result as ArrayBuffer)
+const data = new Uint8Array(evt.target.result)
 
 const workbook = XLSX.read(data,{type:"array"})
 
 const sheet = workbook.Sheets[workbook.SheetNames[0]]
 
-const students = XLSX.utils.sheet_to_json(sheet)
+const json = XLSX.utils.sheet_to_json(sheet)
 
-uploadStudents(students)
+const res = await fetch("/api/import-students",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+students: json,
+class_id:selectedClass
+})
+})
+
+const result = await res.json()
+if(!result.success){
+alert("Lỗi server ❌")
+return
+}
+
+// 🔥 HIỂN THỊ KẾT QUẢ
+alert(
+`✅ Tạo thành công: ${result.created}
+❌ Lỗi: ${result.failed}`
+)
+
+if(result.errors.length > 0){
+let msg = "Các dòng lỗi:\n"
+
+result.errors.forEach((e:any)=>{
+msg += `Dòng ${e.row}: ${e.error}\n`
+})
+
+alert(msg)
+}
+
+
+if(!result.success){
+console.error(result.error)
+alert("Lỗi insert DB ❌")
+setLoading(false)
+return
+}
+
+// 👉 chỉ chạy khi OK
+setLoading(false)
+
+// export excel
+const ws = XLSX.utils.json_to_sheet(result.accounts)
+const wb = XLSX.utils.book_new()
+
+XLSX.utils.book_append_sheet(wb, ws, "Accounts")
+
+XLSX.writeFile(wb, `tai_khoan_${selectedClassName}.xlsx`)
+
+loadStudents(selectedClass,selectedClassName)
 
 }
 
@@ -346,35 +443,116 @@ reader.readAsArrayBuffer(file)
 
 }
 
-async function uploadStudents(students:any){
+async function exportAccounts(){
 
-await fetch("/api/import-students",{
+const res = await fetch("/api/export-accounts",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-students,
-class_id:selectedClass
-})
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({ class_id:selectedClass })
 })
 
-loadStudents(selectedClass,selectedClassName)
+const data = await res.json()
+
+const ws = XLSX.utils.json_to_sheet(data)
+const wb = XLSX.utils.book_new()
+
+XLSX.utils.book_append_sheet(wb, ws, "Accounts")
+
+XLSX.writeFile(wb, `tai_khoan_${selectedClassName}.xlsx`)
 
 }
-function exportStudents(){
 
-const data = [
-...students.pending,
-...students.active
-]
+async function resetSelected(){
 
-const worksheet = XLSX.utils.json_to_sheet(data)
+if(selectedStudents.length === 0){
+alert("Chọn học sinh trước")
+return
+}
 
-const workbook = XLSX.utils.book_new()
+const res = await fetch("/api/reset-password",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+ids:selectedStudents
+})
+})
 
-XLSX.utils.book_append_sheet(workbook,worksheet,"students")
+const result = await res.json()
 
-XLSX.writeFile(workbook,"students.xlsx")
+if(!result.success){
+alert("Lỗi reset ❌")
+return
+}
 
+// 👉 xuất excel mật khẩu mới
+const ws = XLSX.utils.json_to_sheet(result.accounts)
+const wb = XLSX.utils.book_new()
+
+XLSX.utils.book_append_sheet(wb, ws, "Passwords")
+
+XLSX.writeFile(wb, "reset_password.xlsx")
+
+alert(`Đã reset ${result.count} tài khoản`)
+
+setSelectedStudents([])
+
+loadStudents(selectedClass,selectedClassName)
+}
+
+async function saveStudent(){
+
+const res = await fetch("/api/update-student",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+id:editingStudent.id,
+name:editingStudent.name,
+email:editingStudent.email
+})
+})
+
+const result = await res.json()
+
+if(!result.success){
+alert("Lỗi ❌")
+return
+}
+
+alert("Đã cập nhật")
+
+setEditingStudent(null)
+
+loadStudents(selectedClass,selectedClassName)
+}
+
+async function deleteStudent(id:string){
+
+if(!confirm("Xoá học sinh này?")) return
+
+const res = await fetch("/api/delete-student",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({id})
+})
+
+const result = await res.json()
+
+if(!result.success){
+alert("Lỗi ❌")
+return
+}
+
+alert("Đã xoá")
+
+loadStudents(selectedClass,selectedClassName)
 }
 
 function exportMarkExcel(){
@@ -577,6 +755,38 @@ return
 action()
 
 }
+
+async function activateAll(){
+
+if(students.pending.length === 0){
+alert("Không có học sinh chờ kích hoạt")
+return
+}
+
+if(!confirm("Xác nhận kích hoạt tất cả?")) return
+
+const res = await fetch("/api/activate-all-students",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+class_id:selectedClass
+})
+})
+
+const result = await res.json()
+
+if(!result.success){
+alert("Lỗi ❌")
+return
+}
+
+alert(`Đã kích hoạt ${result.count} học sinh`)
+
+loadStudents(selectedClass,selectedClassName)
+}
+
 const totalStudents = students.pending.length + students.active.length
 const totalSubmissions = submissions.length
 
@@ -629,6 +839,50 @@ className="mt-3 bg-gray-300 px-3 py-1 rounded"
 </div>
 
 </div>
+)}
+
+{editingStudent && (
+
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+<div className="bg-white p-6 rounded-xl w-80">
+
+<h2 className="font-bold mb-3">Sửa học sinh</h2>
+
+<input
+className="border p-2 w-full mb-2 text-black"
+value={editingStudent.name}
+onChange={(e)=>setEditingStudent({...editingStudent,name:e.target.value})}
+/>
+
+<input
+className="border p-2 w-full mb-2 text-black"
+value={editingStudent.email}
+onChange={(e)=>setEditingStudent({...editingStudent,email:e.target.value})}
+/>
+
+<div className="flex justify-end gap-2">
+
+<button
+onClick={()=>setEditingStudent(null)}
+className="bg-gray-300 px-3 py-1 rounded"
+>
+Huỷ
+</button>
+
+<button
+onClick={saveStudent}
+className="bg-blue-500 text-white px-3 py-1 rounded"
+>
+Lưu
+</button>
+
+</div>
+
+</div>
+
+</div>
+
 )}
 
 <div className="flex">
@@ -836,20 +1090,38 @@ Quản lý học sinh
 
 <input
 type="file"
-onChange={importExcel}
-className="mb-4"
+onChange={(e:any)=>setFile(e.target.files[0])}
 />
+
+<button
+onClick={handleUpload}
+disabled={loading}
+className="bg-blue-500 text-white px-3 py-2 rounded ml-2 disabled:opacity-50"
+>
+{loading ? "Đang tạo tài khoản..." : "Tải lên"}
+</button>
+
 <a
 href="/sample_students.xlsx"
 download
 className="ml-4 text-blue-400 underline">
 Tải file Excel mẫu
 </a>
+<button onClick={exportAccounts} className="bg-green-500 text-white px-3 py-2 rounded ml-2">
+Xuất lại tài khoản
+</button>
+
 <button
-onClick={exportStudents}
-className="bg-green-600 px-3 py-1 rounded ml-4"
+onClick={resetSelected}
+className="bg-red-500 text-white px-3 py-1 rounded ml-2"
 >
-Xuất Excel
+Reset mật khẩu đã chọn
+</button>
+<button
+onClick={activateAll}
+className="bg-green-600 text-white px-3 py-1 rounded ml-2"
+>
+Kích hoạt tất cả ({students.pending.length})
 </button>
 {/* ===== HỌC SINH CHỜ KÍCH HOẠT ===== */}
 
@@ -912,12 +1184,26 @@ Học sinh đã kích hoạt
 </h2>
 
 <table className="w-full bg-gray-800">
-
 <thead className="bg-gray-700 text-left">
 <tr>
 <th className="p-2">Tên học sinh</th>
 <th>Email</th>
 <th>Trạng thái</th>
+<td className="space-x-2">
+
+</td>
+<th>
+  <input
+type="checkbox"
+onChange={(e)=>{
+if(e.target.checked){
+setSelectedStudents(students.active.map((s:any)=>s.id))
+}else{
+setSelectedStudents([])
+}
+}}
+/>
+</th>
 </tr>
 </thead>
 
@@ -926,15 +1212,44 @@ Học sinh đã kích hoạt
 {students?.active?.map((s:any)=>(
 
 <tr key={s.id} className="border-b border-gray-700">
-
-<td className="py-2">{s.name}</td>
-
+<td>{s.name}</td>
 <td>{s.email}</td>
 
 <td className="text-green-400 font-semibold">
 Đã kích hoạt
 </td>
 
+<td className="space-x-2">   {/* 👈 BẮT BUỘC */}
+
+<button
+onClick={()=>setEditingStudent(s)}
+className="bg-yellow-500 text-white px-2 py-1 rounded"
+>
+Sửa
+</button>
+
+<button
+onClick={()=>deleteStudent(s.id)}
+className="bg-red-500 text-white px-2 py-1 rounded"
+>
+Xoá
+</button>
+
+</td>
+
+<td>
+<input
+type="checkbox"
+checked={selectedStudents.includes(s.id)}
+onChange={(e)=>{
+if(e.target.checked){
+setSelectedStudents([...selectedStudents,s.id])
+}else{
+setSelectedStudents(selectedStudents.filter(id=>id!==s.id))
+}
+}}
+/>
+</td>
 </tr>
 
 ))}
