@@ -49,7 +49,7 @@ alert(data.message || "Đổi mật khẩu thất bại")
 
 return(
 
-<div className="w-[320px]">
+<div className="w-full[320px]">
 
 <h2 className="text-lg font-bold mb-4 text-center text-black">
 Đổi mật khẩu

@@ -445,23 +445,39 @@ reader.readAsArrayBuffer(file)
 
 async function exportAccounts(){
 
-const res = await fetch("/api/export-accounts",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({ class_id:selectedClass })
-})
+  if(!selectedClass){
+    alert("Chưa chọn lớp")
+    return
+  }
 
-const data = await res.json()
+  const res = await fetch("/api/export-accounts",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({ class_id: selectedClass })
+  })
 
-const ws = XLSX.utils.json_to_sheet(data)
-const wb = XLSX.utils.book_new()
+  const result = await res.json()
 
-XLSX.utils.book_append_sheet(wb, ws, "Accounts")
+  console.log("EXPORT RESULT:", result)
 
-XLSX.writeFile(wb, `tai_khoan_${selectedClassName}.xlsx`)
+  if(!result.success){
+    alert(result.error)
+    return
+  }
 
+  if(!result.data || result.data.length === 0){
+    alert("Không có dữ liệu")
+    return
+  }
+
+  const ws = XLSX.utils.json_to_sheet(result.data)
+  const wb = XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(wb, ws, "Accounts")
+
+  XLSX.writeFile(wb, `tai_khoan_${selectedClassName}.xlsx`)
 }
 
 async function resetSelected(){
@@ -1096,7 +1112,7 @@ onChange={(e:any)=>setFile(e.target.files[0])}
 <button
 onClick={handleUpload}
 disabled={loading}
-className="bg-blue-500 text-white px-3 py-2 rounded ml-2 disabled:opacity-50"
+className="bg-blue-500 text-white px-3 py-1 rounded ml-2 disabled:opacity-50"
 >
 {loading ? "Đang tạo tài khoản..." : "Tải lên"}
 </button>
@@ -1107,7 +1123,7 @@ download
 className="ml-4 text-blue-400 underline">
 Tải file Excel mẫu
 </a>
-<button onClick={exportAccounts} className="bg-green-500 text-white px-3 py-2 rounded ml-2">
+<button onClick={exportAccounts} className="bg-green-500 text-white px-3 py-1 rounded ml-2">
 Xuất lại tài khoản
 </button>
 

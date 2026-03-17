@@ -10,16 +10,19 @@ function generatePassword(){
 return Math.random().toString(36).slice(-8)
 }
 
-export async function POST(req: Request){
+export async function POST(req:Request){
 
-const { students, class_id } = await req.json()
+const {students,class_id} = await req.json()
 
-const success:any[] = []
-const errors:any[] = []
+const accounts:any[] = []
+
+for(const s of students){
+
+const success = []
+const errors = []
 
 let index = 1
 
-// ✅ CHỈ 1 VÒNG FOR
 for(const s of students){
 
 const name = s.name || s["Tên học sinh"]
@@ -56,7 +59,7 @@ index++
 continue
 }
 
-// 👉 insert accounts (LƯU PASSWORD GỐC)
+// 👉 insert accounts
 await supabase.from("student_accounts").insert({
 name,
 email,
@@ -75,7 +78,6 @@ status:"OK"
 index++
 }
 
-// ✅ RETURN SAU KHI XONG LOOP
 return Response.json({
 success:true,
 total: students.length,
@@ -83,6 +85,13 @@ created: success.length,
 failed: errors.length,
 errors,
 accounts: success
+})
+
+}
+
+return Response.json({
+success:true,
+accounts
 })
 
 }

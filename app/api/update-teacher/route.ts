@@ -11,14 +11,11 @@ const {id,name,email} = await req.json()
 
 const {error} = await supabase
 .from("users")
-.update({
-name,
-email
-})
+.update({name,email})
 .eq("id",id)
 
 if(error){
-return Response.json({success:false})
+return Response.json({success:false,error:error.message})
 }
 
 return Response.json({success:true})

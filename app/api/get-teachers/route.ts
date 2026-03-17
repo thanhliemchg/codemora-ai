@@ -5,21 +5,16 @@ process.env.NEXT_PUBLIC_SUPABASE_URL!,
 process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function POST(req:Request){
+export async function GET(){
 
-const {id,name,email} = await req.json()
-
-const {error} = await supabase
+const { data, error } = await supabase
 .from("users")
-.update({
-name,
-email
-})
-.eq("id",id)
+.select("*")
+.eq("role","teacher")
 
 if(error){
 return Response.json({success:false})
 }
 
-return Response.json({success:true})
+return Response.json(data)
 }
