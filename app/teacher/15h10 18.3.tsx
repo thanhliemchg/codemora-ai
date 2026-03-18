@@ -266,13 +266,17 @@ async function loadPairCode(p:any, idx:number){
 
   const data = await res.json()
 
-  // 🔥 gán code vào đúng pair
-  const newGroups = [...copyGroups]
+ const newGroups = [...copyGroups]
 
-  newGroups[selectedGroup].pairs[idx].codeA = data[0].code
-  newGroups[selectedGroup].pairs[idx].codeB = data[1].code
+// ❗ check trước khi dùng
+if(!newGroups[selectedGroup]) return
+if(!newGroups[selectedGroup].pairs) return
+if(!newGroups[selectedGroup].pairs[idx]) return
 
-  setCopyGroups(newGroups)
+newGroups[selectedGroup].pairs[idx].codeA = data[0]?.code || ""
+newGroups[selectedGroup].pairs[idx].codeB = data[1]?.code || ""
+
+setCopyGroups(newGroups)
 }
 
 async function loadClasses(){
@@ -945,11 +949,12 @@ const totalStudents = students.pending.length + students.active.length
 const totalSubmissions = submissions.length
 
 return(
-<div className="bg-gray-100 min-h-screen text-gray-800">
+
+<div className="min-h-screen bg-gray-900 text-white">
 
 <div className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow">
 
-<h1 className="font-bold text-2xl text-white">
+<h1 className="font-bold text-xl text-white">
 🚀 CodeMora AI
 </h1>
 
@@ -957,7 +962,7 @@ return(
 
 <span
 onClick={()=>setShowPassword(true)}
-className="mr-4 bg-gray/20 text-blue px-3 py-1 rounded-full text-sm font-semibold cursor-pointer"
+className="mr-4 bg-white/20 text-white px-3 py-1 rounded-full text-sm font-semibold cursor-pointer"
 >
 👤 {user?.name}
 </span>
@@ -967,7 +972,7 @@ onClick={()=>{
 localStorage.removeItem("user")
 window.location.href="/login"
 }}
-className="bg-red-600 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
+className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
 >
 Đăng xuất
 </button>
@@ -985,7 +990,7 @@ className="bg-red-600 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
 
 <button
 onClick={()=>setShowPassword(false)}
-className="mt-3 bg-green-600 px-3 py-1 rounded w-full"
+className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
 >
 Đóng
 </button>
@@ -1026,7 +1031,7 @@ Huỷ
 
 <button
 onClick={saveStudent}
-className="bg-blue-600 text-white px-3 py-1 rounded"
+className="bg-blue-500 text-white px-3 py-1 rounded"
 >
 Lưu
 </button>
@@ -1041,110 +1046,102 @@ Lưu
 
 <div className="flex">
 
-<div className="w-[240px] bg-white border-r shadow-sm p-5 min-h-screen">
+<div className="w-[220px] bg-blue-950 p-6 min-h-screen">
 
-  <h2 className="font-bold mb-6 text-blue-600 text-lg">
-    🚀 CodeMora AI
-  </h2>
+<h2 className="font-bold mb-6">Menu</h2>
 
-  <ul className="space-y-2 text-sm">
+<ul className="space-y-2 text-sm">
 
-    {/* ===== LỚP ===== */}
-    <li
-      onClick={()=>changeTab("classes")}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${tab==="classes"
-        ? "bg-blue-100 text-blue-700 font-medium"
-        : "hover:bg-gray-100 text-gray-700"}
-      `}
-    >
-      <span>📚</span>
-      <span>Lớp học</span>
-    </li>
+<li
+onClick={()=>changeTab("classes")}
+className={`flex items-center gap-3 px-4 py-2 rounded cursor-pointer transition
+${tab==="classes"
+? "bg-blue-600 text-white border-l-4 border-yellow-400"
+: "hover:bg-gray-700 text-gray-200"}
+`}
+>
+<span>📚</span>
+<span>Lớp học</span>
+</li>
 
 
-    {/* ===== HỌC SINH ===== */}
-    <li
-      onClick={()=>{
-        changeTab("students")
-        requireClass(()=>loadStudents(selectedClass,selectedClassName))
-      }}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${tab==="students"
-        ? "bg-blue-100 text-blue-700 font-medium"
-        : "hover:bg-gray-100 text-gray-700"}
-      `}
-    >
-      <span>👨‍🎓</span>
-      <span>Học sinh</span>
-    </li>
+<li
+onClick={()=>{
+changeTab("students")
+requireClass(()=>loadStudents(selectedClass,selectedClassName))
+}}
+className={`flex items-center gap-3 px-4 py-2 rounded cursor-pointer transition
+${tab==="students"
+? "bg-blue-600 text-white border-l-4 border-yellow-400"
+: "hover:bg-gray-700 text-gray-200"}
+`}
+>
+<span>👨‍🎓</span>
+<span>Học sinh</span>
+</li>
 
 
-    {/* ===== GIAO BÀI ===== */}
-    <li
-      onClick={()=>{
-        changeTab("exercise")
-        requireClass(()=>loadExercises(selectedClass,selectedClassName))
-      }}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${tab==="exercise"
-        ? "bg-blue-100 text-blue-700 font-medium"
-        : "hover:bg-gray-100 text-gray-700"}
-      `}
-    >
-      <span>📝</span>
-      <span>Giao bài tập</span>
-    </li>
+<li
+onClick={()=>{
+changeTab("exercise")
+requireClass(()=>loadExercises(selectedClass,selectedClassName))
+}}
+className={`flex items-center gap-3 px-4 py-2 rounded cursor-pointer transition
+${tab==="exercise"
+? "bg-blue-600 text-white border-l-4 border-yellow-400"
+: "hover:bg-gray-700 text-gray-200"}
+`}
+>
+<span>📝</span>
+<span>Giao bài tập</span>
+</li>
 
 
-    {/* ===== BÀI NỘP ===== */}
-    <li
-      onClick={()=>{
-        changeTab("submissions")
-        requireClass(()=>loadSubmissions(selectedClass,selectedClassName))
-      }}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${tab==="submissions"
-        ? "bg-blue-100 text-blue-700 font-medium"
-        : "hover:bg-gray-100 text-gray-700"}
-      `}
-    >
-      <span>📥</span>
-      <span>Bài nộp</span>
-    </li>
+<li
+onClick={()=>{
+changeTab("submissions")
+requireClass(()=>loadSubmissions(selectedClass,selectedClassName))
+}}
+className={`flex items-center gap-3 px-4 py-2 rounded cursor-pointer transition
+${tab==="submissions"
+? "bg-blue-600 text-white border-l-4 border-yellow-400"
+: "hover:bg-gray-700 text-gray-200"}
+`}
+>
+<span>📥</span>
+<span>Bài nộp</span>
+</li>
 
 
-    {/* ===== COPY ===== */}
-    <li
-      onClick={()=>{
-        changeTab("copy")
-        requireClass(detectCopy)
-      }}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${tab==="copy"
-        ? "bg-blue-100 text-blue-700 font-medium"
-        : "hover:bg-gray-100 text-gray-700"}
-      `}
-    >
-      <span>🕵️</span>
-      <span>Phát hiện copy</span>
-    </li>
+<li
+onClick={()=>{
+changeTab("copy")
+requireClass(detectCopy)
+}}
+className={`flex items-center gap-3 px-4 py-2 rounded cursor-pointer transition
+${tab==="copy"
+? "bg-blue-600 text-white border-l-4 border-yellow-400"
+: "hover:bg-gray-700 text-gray-200"}
+`}
+>
+<span>🕵️</span>
+<span>Phát hiện copy</span>
+</li>
 
 
-    {/* ===== STATS ===== */}
-    <li
-      onClick={()=>changeTab("stats")}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${tab==="stats"
-        ? "bg-blue-100 text-blue-700 font-medium"
-        : "hover:bg-gray-100 text-gray-700"}
-      `}
-    >
-      <span>📊</span>
-      <span>Thống kê</span>
-    </li>
+<li
+onClick={()=>changeTab("stats")}
+className={`flex items-center gap-3 px-4 py-2 rounded cursor-pointer transition
+${tab==="stats"
+? "bg-blue-600 text-white border-l-4 border-yellow-400"
+: "hover:bg-gray-700 text-gray-200"}
+`}
+>
+<span>📊</span>
+<span>Thống kê</span>
+</li>
 
-  </ul>
+</ul>
 
 </div>
 
@@ -1152,7 +1149,7 @@ Lưu
 
 {selectedClassName && (
 
-<div className="mb-6 text-red-600 font-bold mb-6">
+<div className="mb-6 text-yellow-400 font-bold mb-6">
 📚 LỚP: {selectedClassName}
 </div>
 
@@ -1160,39 +1157,37 @@ Lưu
 
 {tab==="classes" && (
 
-<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+<div>
 
-<h1 className="text-xl text-purple-600 font-semibold mb-4">Quản lý lớp</h1>
+<h1 className="text-2xl mb-6">Quản lý lớp</h1>
 
-<div className="flex gap-3 mb-4">
-  <input
-    placeholder="Tên lớp"
-    className="border px-3 py-2 rounded w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-    value={className}
-    onChange={(e)=>setClassName(e.target.value)}
-  />
+<input
+placeholder="Tên lớp"
+className="text-black p-2 mr-2"
+value={className}
+onChange={(e)=>setClassName(e.target.value)}
+/>
 
-  <button
-    onClick={createClass}
-    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-  >
-    + Tạo lớp
-  </button>
-</div>
+<button
+onClick={createClass}
+className="bg-blue-600 px-3 py-2 rounded"
+>
+Tạo lớp
+</button>
 
-<table className="w-full bg-white">
+<table className="w-full mt-6 bg-gray-800">
 
 <tbody>
 
 {classes.map((c:any)=>(
 <tr
 key={c.id}
-className={`cursor-pointer hover:bg-blue-200 
-${selectedClass===c.id ? "bg-blue-200" : ""}`}
+className={`border-b border-gray-700 cursor-pointer hover:bg-gray-700 
+${selectedClass===c.id ? "bg-gray-700" : ""}`}
 >
 
 <td
-className="py-2 font-semibold text-blue-700"
+className="py-2 font-semibold text-yellow-300"
 onClick={()=>{
 setSelectedClass(c.id)
 setSelectedClassName(c.name)
@@ -1205,28 +1200,28 @@ setSelectedClassName(c.name)
 
 <button
 onClick={()=>loadStudents(c.id,c.name)}
-className="bg-blue-600 px-3 py-1 text-white rounded"
+className="bg-blue-500 px-2 py-1 rounded mr-2"
 >
 Học sinh
 </button>
 
 <button
 onClick={()=>loadSubmissions(c.id,c.name)}
-className="bg-green-600 px-3 py-1 text-whiterounded"
+className="bg-green-500 px-2 py-1 rounded mr-2"
 >
 Bài nộp
 </button>
 
 <button
 onClick={()=>editClass(c.id,c.name)}
-className="bg-yellow-600 px-3 py-1 text-white rounded"
+className="bg-yellow-500 px-2 py-1 rounded mr-2"
 >
 Sửa tên lớp
 </button>
 
 <button
 onClick={()=>deleteClass(c.id)}
-className="bg-red-600 px-3 py-1 text-white rounded"
+className="bg-red-500 px-2 py-1 rounded"
 >
 Xoá lớp
 </button>
@@ -1246,9 +1241,9 @@ Xoá lớp
 
 {tab==="students" && (
 
-<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+<div>
 
-<h1 className="text-xl font-semibold mb-4">
+<h1 className="ttext-lg font-bold text-white-400 mb-2">
 Quản lý học sinh
 </h1>
 
@@ -1260,7 +1255,7 @@ onChange={(e:any)=>setFile(e.target.files[0])}
 <button
 onClick={handleUpload}
 disabled={loading}
-className="bg-blue-600 text-white px-3 py-1 rounded ml-2 disabled:opacity-50"
+className="bg-blue-500 text-white px-3 py-1 rounded ml-2 disabled:opacity-50"
 >
 {loading ? "Đang tạo tài khoản..." : "Tải lên"}
 </button>
@@ -1271,13 +1266,13 @@ download
 className="ml-4 text-blue-400 underline">
 Tải file Excel mẫu
 </a>
-<button onClick={exportAccounts} className="bg-green-600 text-white px-3 py-1 rounded ml-2">
+<button onClick={exportAccounts} className="bg-green-500 text-white px-3 py-1 rounded ml-2">
 Xuất lại tài khoản
 </button>
 
 <button
 onClick={resetSelected}
-className="bg-red-600 text-white px-3 py-1 rounded ml-2"
+className="bg-red-500 text-white px-3 py-1 rounded ml-2"
 >
 Reset mật khẩu đã chọn
 </button>
@@ -1289,14 +1284,14 @@ Kích hoạt tất cả ({students.pending.length})
 </button>
 {/* ===== HỌC SINH CHỜ KÍCH HOẠT ===== */}
 
-<h2 className="text-lg font-bold text-gray-700 mb-2">
+<h2 className="text-lg font-bold text-yellow-400 mb-2">
 Học sinh chờ kích hoạt
 </h2>
 
-<table className="w-full bg-blue-100 rounded-lg overflow-hidden">
-<thead className="bg-blue-600 text-left text-white">
+<table className="w-full bg-gray-800 mb-6">
 
-<tr className="border-b hover:bg-blue-600">
+<thead className="bg-gray-700 text-left">
+<tr>
 <th className="p-2">Tên học sinh</th>
 <th>Email</th>
 <th>Trạng thái</th>
@@ -1308,13 +1303,13 @@ Học sinh chờ kích hoạt
 
 {students?.pending?.map((s:any)=>(
 
-<tr key={s.id} className="border-b border-blue-700">
+<tr key={s.id} className="border-b border-gray-700">
 
 <td className="py-2">{s.name}</td>
 
 <td>{s.email}</td>
 
-<td className="text-gray-700 font-semibold">
+<td className="text-yellow-400 font-semibold">
 Chưa kích hoạt
 </td>
 
@@ -1322,7 +1317,7 @@ Chưa kích hoạt
 
 <button
 onClick={()=>activateStudent(s.id)}
-className="bg-green-600 px-3 py-1 text-white rounded"
+className="bg-green-600 px-2 py-1 rounded"
 >
 Kích hoạt
 </button>
@@ -1337,18 +1332,18 @@ Kích hoạt
 
 </table>
 
-<div className="text-red-600 mb-8">
+<div className="text-gray-300 mb-8">
 Tổng học sinh chờ kích hoạt: {students.pending.length}
 </div>
-  
+
 {/* ===== HỌC SINH ĐÃ KÍCH HOẠT ===== */}
 
 <h2 className="text-lg font-bold text-green-400 mb-2">
 Học sinh đã kích hoạt
 </h2>
 
-<table className="w-full bg-blue-100 rounded-lg overflow-hidden">
-<thead className="bg-blue-600 text-left text-white">
+<table className="w-full bg-gray-800">
+<thead className="bg-gray-700 text-left">
 <tr>
 <th className="p-2">Tên học sinh</th>
 <th>Email</th>
@@ -1375,7 +1370,7 @@ setSelectedStudents([])
 
 {students?.active?.map((s:any)=>(
 
-<tr key={s.id} className="border-b border-blue-700">
+<tr key={s.id} className="border-b border-gray-700">
 <td>{s.name}</td>
 <td>{s.email}</td>
 
@@ -1387,14 +1382,14 @@ setSelectedStudents([])
 
 <button
 onClick={()=>setEditingStudent(s)}
-className="bg-yellow-600 text-white px-3 py-1 rounded"
+className="bg-yellow-500 text-white px-2 py-1 rounded"
 >
 Sửa
 </button>
 
 <button
 onClick={()=>deleteStudent(s.id)}
-className="bg-red-600 text-white px-3 py-1 rounded"
+className="bg-red-500 text-white px-2 py-1 rounded"
 >
 Xoá
 </button>
@@ -1422,7 +1417,7 @@ setSelectedStudents(selectedStudents.filter(id=>id!==s.id))
 
 </table>
 
-<div className="text-red-600 mt-4">
+<div className="text-gray-300 mt-4">
 Tổng học sinh trong lớp: {students.active.length}
 </div>
 
@@ -1432,24 +1427,22 @@ Tổng học sinh trong lớp: {students.active.length}
 
 {tab==="exercise" && (
 
-<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+<div>
 
-<h1 className="text-xl font-semibold mb-4">
-Giao bài tập
-</h1>
+<h1 className="text-1xl mb-6">Giao bài tập</h1>
 
 <textarea
 placeholder="Nhập đề bài..."
-className="w-full h-[180px] border border-blue-600 p-4 text-black mb-4 rounded"
+className="w-full h-[180px] p-4 text-black mb-4 rounded"
 value={exercise}
 onChange={(e)=>setExercise(e.target.value)}
 />
 
 {/* PREVIEW ĐỀ BÀI */}
 
-<div className="bg-white p-4 rounded mt-4">
+<div className="bg-gray-800 p-4 rounded mt-4">
 
-<div className="text-gray-700 mb-2">
+<div className="text-yellow-400 mb-2">
 Preview đề bài
 </div>
 
@@ -1473,14 +1466,14 @@ dangerouslySetInnerHTML={{ __html: exercise }}
 
 <textarea
 placeholder="Mô tả để AI sinh bài..."
-className="w-full h-[120px] border border-blue-600 p-4 text-black mb-4 rounded"
+className="w-full h-[120px] p-4 text-black mb-4 rounded"
 value={aiPrompt}
 onChange={(e)=>setAiPrompt(e.target.value)}
 />
 
 <button
 onClick={generateAI}
-className="bg-purple-600 text-white px-3 py-1 rounded"
+className="bg-purple-600 px-4 py-2 rounded mr-4"
 >
 Sinh bằng AI
 </button>
@@ -1520,14 +1513,14 @@ setExercise(content)
 
 <button
 onClick={createExercise}
-className="bg-blue-600 text-white px-3 py-1 rounded"
+className="bg-blue-600 px-4 py-2 rounded"
 >
 Gửi bài
 </button>
 
-<table className="w-full mt-6 bg-white rounded-lg overflow-hidden">
+<table className="w-full mt-6 bg-gray-800 rounded-lg overflow-hidden">
 
-<thead className="bg-blue-300 text-gray-800">
+<thead className="bg-gray-700 text-white">
 <tr>
 
 <th className="p-3 text-center">Đề bài</th>
@@ -1544,14 +1537,14 @@ Gửi bài
 <tbody>
 
 {exercises?.map((e:any)=>(
-<tr key={e.id} className="border-b hover:bg-gray-50">
+<tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700/40">
 
-<td className="px-3 py-2 text-gray-700">
+<td className="p-3 max-w-xl text-sm">
 
 <details>
 
 <summary 
-className="cursor-pointer text-red-400"
+className="cursor-pointer text-blue-400"
 onClick={()=>setPreview(!preview)}
 >
 Xem đề
@@ -1601,15 +1594,15 @@ Xem đề
 
 {tab==="copy" && (
 
-<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+<div className="p-6">
 
-<h1 className="text-xl font-semibold mb-4">
+<h1 className="text-2xl font-bold text-red-600 mb-4">
 🚨 Các nhóm HS có code giống nhau:
 </h1>
 
 <button
 onClick={detectCopy}
-className="bg-red-600 text-white px-3 py-1 rounded"
+className="bg-red-500 text-white px-4 py-2 rounded mb-6"
 >
 🔥 Quét lại
 </button>
@@ -1718,12 +1711,14 @@ Không phát hiện code giống nhau
 
 {tab==="submissions" && (
 
-<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+<div className="mt-4">
 
 <div className="flex justify-between items-center mb-3">
+
+
 <button
 onClick={exportMarkExcel}
-className="bg-green-600 px-3 py-1 text-white rounded"
+className="bg-green-600 px-3 py-1 rounded text-white"
 >
 Xuất Excel
 </button>
@@ -1741,24 +1736,24 @@ Chưa có bài nộp
 <>
 <div className="grid grid-cols-4 gap-4 mb-6">
 
-<div className="bg-purple-600 p-4 rounded text-center">
-<div className="text-sm text-white">Tổng bài</div>
-<div className="text-2xl font-bold text-white">{totalAll}</div>
+<div className="bg-gray-800 p-4 rounded text-center">
+<div className="text-gray-400 text-sm">Tổng bài</div>
+<div className="text-2xl font-bold">{totalAll}</div>
 </div>
 
 <div className="bg-yellow-600 p-4 rounded text-center">
-<div className="text-sm text-white">Đã nộp</div>
-<div className="text-2xl font-bold text-white">{totalSubmitted}</div>
+<div className="text-sm">Đã nộp</div>
+<div className="text-2xl font-bold">{totalSubmitted}</div>
 </div>
 
 <div className="bg-green-600 p-4 rounded text-center">
-<div className="text-sm text-white">Đã chấm</div>
-<div className="text-2xl font-bold text-white">{totalGraded}</div>
+<div className="text-sm">Đã chấm</div>
+<div className="text-2xl font-bold">{totalGraded}</div>
 </div>
 
 <div className="bg-red-600 p-4 rounded text-center">
-<div className="text-sm text-white">Chưa nộp</div>
-<div className="text-2xl font-bold text-white">{totalPending}</div>
+<div className="text-sm">Chưa nộp</div>
+<div className="text-2xl font-bold">{totalPending}</div>
 </div>
 
 </div>
@@ -1770,7 +1765,7 @@ onClick={()=>setStatusFilter("all")}
 className={`px-3 py-1 rounded
 ${statusFilter==="all"
 ? "bg-blue-600 text-white"
-: "bg-gray-200 text-gray-700"}
+: "bg-gray-700 text-gray-200"}
 `}
 >
 Tất cả
@@ -1780,8 +1775,8 @@ Tất cả
 onClick={()=>setStatusFilter("submitted")}
 className={`px-3 py-1 rounded
 ${statusFilter==="submitted"
-? "bg-yellow-600 text-white"
-: "bg-gray-200 text-gray-700"}
+? "bg-yellow-500 text-black"
+: "bg-gray-700 text-gray-200"}
 `}
 >
 Đã nộp
@@ -1792,7 +1787,7 @@ onClick={()=>setStatusFilter("graded")}
 className={`px-3 py-1 rounded
 ${statusFilter==="graded"
 ? "bg-green-600 text-white"
-: "bg-gray-200 text-gray-700"}
+: "bg-gray-700 text-gray-200"}
 `}
 >
 Đã chấm
@@ -1802,8 +1797,8 @@ ${statusFilter==="graded"
 onClick={()=>setStatusFilter("pending")}
 className={`px-3 py-1 rounded
 ${statusFilter==="pending"
-? "bg-red-600 text-white"
-: "bg-gray-200 text-gray-700"}
+? "bg-red-500 text-white"
+: "bg-gray-700 text-gray-200"}
 `}
 >
 Chưa nộp
@@ -1811,19 +1806,19 @@ Chưa nộp
 
 </div>
 <table className="w-full border-collapse text-fixed">
-<thead className="bg-blue-600 text-white">
+<thead className="bg-gray-700 text-white">
 <tr>
-<th className="border border-blue-600 px-4 py-2 text-center">STT</th>
+<th className="border border-gray-600 px-4 py-2 text-center">STT</th>
 
-<th className="border border-blue-600 px-4 py-2 text-center">Họ và tên</th>
+<th className="border border-gray-600 px-4 py-2 text-center">Họ và tên</th>
 
-<th className="border border-blue-600 px-4 py-2 text-center">Loại bài</th>
+<th className="border border-gray-600 px-4 py-2 text-center">Loại bài</th>
 
-<th className="border border-blue-600 px-4 py-2 text-center">Điểm AI chấm</th>
+<th className="border border-gray-600 px-4 py-2 text-center">Điểm AI chấm</th>
 
-<th className="border border-blue-600 px-4 py-2 text-center">Điểm GV chấm</th>
+<th className="border border-gray-600 px-4 py-2 text-center">Điểm GV chấm</th>
 
-<th className="border border-blue-600 px-4 py-2 text-center">Trạng thái</th>
+<th className="border border-gray-600 px-4 py-2 text-center">Trạng thái</th>
 
 </tr>
 
@@ -1853,24 +1848,24 @@ behavior:"smooth"
 },100)
 
 }}
-className={`cursor-pointer hover:bg-blue-200
+className={`cursor-pointer hover:bg-gray-700
 ${selectedSubmission?.id === s.id 
-? "bg-blue-900 border-l-4 border-blue-200"
+? "bg-blue-900 border-l-4 border-blue-400"
 : ""}
 `}
 >
-<td className="w-12 border border-blue-600 px-2 py-2 text-center">
+<td className="w-12 border border-gray-600 px-2 py-2 text-center">
   {index+1}
 </td>
-<td className="border border-blue-600 px-4 py-2">
+<td className="border border-gray-600 px-4 py-2">
 {s.student_name}
 </td>
 
-<td className="border border-blue-600 px-4 py-2 text-center">
+<td className="border border-gray-600 px-4 py-2 text-center">
 {s.type="teacher" ? "GV giao" : "Tự sinh"}
 </td>
 
-<td className="border border-blue-600 px-4 py-2 text-center">
+<td className="border border-gray-600 px-4 py-2 text-center">
 
 {s.ai_score !== null ? (
 
@@ -1882,7 +1877,7 @@ ${selectedSubmission?.id === s.id
 
 </td>
 
-<td className="border border-blue-600 px-4 py-2 text-center">
+<td className="border border-gray-600 px-4 py-2 text-center">
 
 {s.teacher_score !== null ? (
 
@@ -1894,14 +1889,14 @@ ${selectedSubmission?.id === s.id
 
 </td>
 
-<td className="border border-blue-600 px-4 py-2 text-center">
+<td className="border border-gray-600 px-4 py-2 text-center">
 
 {s.status==="pending" && (
 <span className="text-gray-400">Chưa nộp</span>
 )}
 
 {s.status==="submitted" && (
-<span className="text-gray-700">Đã nộp</span>
+<span className="text-yellow-400">Đã nộp</span>
 )}
 
 {s.status==="graded" && (
@@ -1923,7 +1918,7 @@ ${selectedSubmission?.id === s.id
 
 <div 
 ref={detailRef}
-className="mt-6 bg-white p-4 rounded">
+className="mt-6 bg-gray-800 p-4 rounded">
 
 {/* ===== ĐỀ BÀI ===== */}
 
@@ -1959,7 +1954,7 @@ Code của {selectedSubmission.student_name}
 
 {/* ===== AI FEEDBACK ===== */}
 
-<div className="mt-4 text-gray-700">
+<div className="mt-4 text-yellow-300">
 AI nhận xét:
 </div>
 
@@ -1973,7 +1968,7 @@ AI nhận xét:
 Giáo viên nhận xét:
 </div>
 
-<div className="bg-white p-3 mt-2 rounded">
+<div className="bg-gray-900 p-3 mt-2 rounded">
 {selectedSubmission.teacher_feedback || "Chưa có"}
 </div>
 
@@ -1999,7 +1994,7 @@ type="button"
 disabled={loadingScore || selectedSubmission.status !== "submitted"}
 onClick={()=>saveScore(selectedSubmission.id, teacherScore)}
 className={`
-px-3 py-1 rounded text-white font-semibold transition
+px-4 py-2 rounded text-white font-semibold transition
 ${loadingScore
   ? "bg-gray-400 cursor-not-allowed"
   : selectedSubmission.status === "submitted"
@@ -2028,13 +2023,13 @@ ${loadingScore
 
 {tab==="stats" && (
 
-<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+<div>
 
-<h1 className="text-xl font-semibold mb-4">Thống kê</h1>
+<h1 className="text-2xl mb-6">Thống kê</h1>
 
 <div className="grid grid-cols-2 gap-6">
 
-<div className="bg-white p-6 rounded">
+<div className="bg-gray-800 p-6 rounded">
 
 <h2>Tổng học sinh</h2>
 
@@ -2044,7 +2039,7 @@ ${loadingScore
 
 </div>
 
-<div className="bg-white p-6 rounded">
+<div className="bg-gray-800 p-6 rounded">
 
 <h2>Bài nộp</h2>
 
