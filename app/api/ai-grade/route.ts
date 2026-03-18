@@ -21,7 +21,7 @@ ${code}
 Hãy:
 1. Nhận xét code
 2. Cho điểm từ 0 đến 10
-
+Lưu ý: Cùng một đề nếu học sinh code thuật toán tương tự nhau, tối ưu như nhau thì các học sinh đó phải bằng điểm nhau.
 Trả về JSON dạng:
 
 {

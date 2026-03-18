@@ -65,9 +65,6 @@ const [groupCodes,setGroupCodes] = useState([])
 
 const [loadingScore,setLoadingScore] = useState(false)
 
-const [selectedPair,setSelectedPair] = useState(null)
-const [pairCodes,setPairCodes] = useState([])
-
 const totalAll = submissions.length
 
 const totalSubmitted = submissions.filter(s=>s.status==="submitted").length
@@ -125,33 +122,6 @@ loadCopy()
 }
 
 },[classId,tab])
-
-
-
-function similarity(a:string,b:string){
-
-  const clean = (s:string)=>
-    s.replace(/\s/g,"").toLowerCase()
-
-  const s1 = clean(a)
-  const s2 = clean(b)
-
-  let dp = Array(s1.length+1).fill(0).map(()=>Array(s2.length+1).fill(0))
-
-  for(let i=1;i<=s1.length;i++){
-    for(let j=1;j<=s2.length;j++){
-      if(s1[i-1]===s2[j-1]){
-        dp[i][j] = dp[i-1][j-1] + 1
-      }else{
-        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1])
-      }
-    }
-  }
-
-  const lcs = dp[s1.length][s2.length]
-
-  return lcs / Math.max(s1.length, s2.length)
-}
 
 function parseExercise(text:any){
 
@@ -231,50 +201,6 @@ detectCopy()
 
 }
 
-function highlightDiff(a:string,b:string){
-
-  const maxLen = Math.max(a.length,b.length)
-
-  let resA = ""
-  let resB = ""
-
-  for(let i=0;i<maxLen;i++){
-
-    if(a[i] === b[i]){
-      resA += `<span style="background:#22c55e33">${a[i] || ""}</span>`
-      resB += `<span style="background:#22c55e33">${b[i] || ""}</span>`
-    }else{
-      resA += a[i] || ""
-      resB += b[i] || ""
-    }
-  }
-
-  return {resA,resB}
-}
-async function loadPairCode(p:any, idx:number){
-
-  const res = await fetch("/api/get-pair-code",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body: JSON.stringify({
-      a_id: p.a_id,
-      b_id: p.b_id
-    })
-  })
-
-  const data = await res.json()
-
-  // 🔥 gán code vào đúng pair
-  const newGroups = [...copyGroups]
-
-  newGroups[selectedGroup].pairs[idx].codeA = data[0].code
-  newGroups[selectedGroup].pairs[idx].codeB = data[1].code
-
-  setCopyGroups(newGroups)
-}
-
 async function loadClasses(){
 
 const res = await fetch("/api/classes")
@@ -333,8 +259,6 @@ alert("Không thể tạo lớp")
 }
 
 }
-
-
 
 async function editClass(id:any,name:any){
 
@@ -811,7 +735,7 @@ async function loadGroupCode(student_ids:any){
   })
 
   const data = await res.json()
-  console.log("CODES:",data)
+
   setGroupCodes(data)
 }
 
@@ -1606,103 +1530,61 @@ className="bg-red-500 text-white px-4 py-2 rounded mb-6"
 {copyGroups.map((g:any,i)=>(
 
 <div 
-  key={i}
+  key={i} 
   onClick={()=>{
     setSelectedGroup(i)
     loadGroupCode(g.student_ids)
   }}
-  className="bg-red-100 border border-red-300 p-4 rounded mb-4 cursor-pointer hover:bg-red-200"
+  className="bg-red-100 border border-red-300 p-4 rounded mb-4 cursor-pointer hover:bg-red-200 transition"
 >
 
 <div className="font-bold text-red-700">
 🚨 Nhóm {i+1} ({g.size} học sinh)
 </div>
 
-{/* 🔥 % giống */}
-<div className="text-sm text-red-600 mt-1">
-🔥 Độ giống: {g.similarity}%
-</div>
-
-{/* 👥 danh sách */}
 <div className="mt-2 text-gray-800">
 {g.student_names.join(" , ")}
 </div>
 
-{/* 🔍 chi tiết từng cặp */}
-<div className="mt-2 text-xs text-gray-600">
-{g.pairs?.map((p:any,idx:number)=>(
-  <div 
-  key={idx}
-  onClick={(e)=>{
-    e.stopPropagation() // tránh click nhóm
-    setSelectedPair(p)
-    loadPairCode(p)
-  }}
-  className="cursor-pointer hover:text-red-600 transition"
->
-  🔍 {p.a} - {p.b}: {p.score}%
-</div>
-))}
 </div>
 
-</div>
 ))}
+
 {copyGroups.length===0 &&(
 <div className="text-gray-400">
 Không phát hiện code giống nhau
 </div>
 )}
 
-{selectedGroup !== null && copyGroups[selectedGroup]?.pairs?.length > 0 && (
+{selectedGroup !== null && (
 
-  <div className="mt-6">
+<div className="mt-6">
 
-    <h2 className="text-xl font-bold mb-4">
-      📄 So sánh code
-    </h2>
+<h2 className="text-xl font-bold mb-4">
+📄 Code các học sinh:
+</h2>
 
-    {copyGroups[selectedGroup].pairs.map((p:any,idx:number)=>(
+{groupCodes.map((s:any,i)=>(
 
-  <div 
-    key={idx}
-    onClick={()=>loadPairCode(p,idx)}   // 🔥 THÊM DÒNG NÀY
-    className="cursor-pointer"
-  >
+<div key={i} className="mb-6">
 
-    <div className="flex justify-between mb-3 text-sm">
-
-      <div className="text-blue-400">
-        👤 {p.a}
-      </div>
-
-      <div className="text-red-400">
-        🔥 {p.score}%
-      </div>
-
-      <div className="text-blue-400">
-        👤 {p.b}
-      </div>
-
-    </div>
-
-    {/* 🔥 2 code */}
-    <div className="grid grid-cols-2 gap-4">
-
-      <pre className="bg-black text-green-400 p-3 rounded text-xs overflow-auto max-h-60">
-        {p.codeA || "👉 Click để load"}
-      </pre>
-
-      <pre className="bg-black text-green-400 p-3 rounded text-xs overflow-auto max-h-60">
-        {p.codeB || "👉 Click để load"}
-      </pre>
-
-    </div>
-
-  </div>
-))}
+<div className="font-semibold text-blue-600 mb-2">
+👤 {s.name}
 </div>
+
+<pre className="bg-black text-green-400 p-4 rounded overflow-x-auto text-sm">
+{s.code}
+</pre>
+
+</div>
+
+))}
+
+</div>
+
 )}
 </div>
+
 )}
 
 {tab==="submissions" && (
@@ -1967,8 +1849,12 @@ Giáo viên nhận xét:
 <div className="bg-gray-900 p-3 mt-2 rounded">
 {selectedSubmission.teacher_feedback || "Chưa có"}
 </div>
-
 {/* ===== CHẤM ĐIỂM ===== */}
+
+
+
+
+
 <textarea
 placeholder="Nhập nhận xét của giáo viên..."
 className="bg-white text-black w-full px-3 py-2 rounded border mt-3"
@@ -2050,7 +1936,13 @@ ${loadingScore
 </div>
 
 )}
+
 </div>
+
 </div>
+
 </div>
-)}
+
+)
+
+}

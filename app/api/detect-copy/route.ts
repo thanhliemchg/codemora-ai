@@ -2,91 +2,211 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-function normalize(code:string){
+/* ================= SIMILARITY ================= */
+function similarity(a: string, b: string) {
 
-return code
-.replace(/\/\/.*$/gm,"") // remove comment //
-.replace(/#.*$/gm,"") // remove python comment
-.replace(/\s+/g,"") // remove space
-.toLowerCase()
+  const clean = (s: string) =>
+    s.replace(/\s/g, "").toLowerCase()
 
+  const s1 = clean(a || "")
+  const s2 = clean(b || "")
+
+  if (!s1 || !s2) return 0
+
+  let same = 0
+
+  for (let i = 0; i < Math.min(s1.length, s2.length); i++) {
+    if (s1[i] === s2[i]) same++
+  }
+
+  return same / Math.max(s1.length, s2.length)
 }
 
-// tính similarity
-function similarity(a:string,b:string){
+/* ================= DSU ================= */
 
-const len = Math.max(a.length,b.length)
+class DSU {
+  parent: number[]
 
-if(len===0) return 1
+  constructor(n: number) {
+    this.parent = Array.from({ length: n }, (_, i) => i)
+  }
 
-let same = 0
+  find(x: number): number {
+    if (this.parent[x] !== x) {
+      this.parent[x] = this.find(this.parent[x])
+    }
+    return this.parent[x]
+  }
 
-for(let i=0;i<Math.min(a.length,b.length);i++){
-
-if(a[i]===b[i]) same++
-
+  union(a: number, b: number) {
+    const pa = this.find(a)
+    const pb = this.find(b)
+    if (pa !== pb) {
+      this.parent[pb] = pa
+    }
+  }
 }
 
-return same/len
+/* ================= API ================= */
 
-}
+export async function GET(req: Request) {
+  try {
 
-export async function GET(req:Request){
+    const { searchParams } = new URL(req.url)
+    const class_id = searchParams.get("class_id")
 
-const { searchParams } = new URL(req.url)
+    if (!class_id) {
+      return NextResponse.json([])
+    }
 
-const class_id = searchParams.get("class_id")
+    /* ===== submissions ===== */
 
-const { data } = await supabase
-.from("submissions")
-.select(`
-id,
-code,
-student_id,
-users(name)
-`)
-.eq("class_id",class_id)
-.eq("status","submitted")
+    const { data: subs } = await supabase
+      .from("submissions")
+      .select("student_id, code")
+      .eq("class_id", class_id)
 
-if(!data) return NextResponse.json([])
+    if (!subs || subs.length === 0) {
+      return NextResponse.json([])
+    }
 
-const results:any[] = []
+    /* ===== users ===== */
 
-for(let i=0;i<data.length;i++){
+    const { data: users } = await supabase
+      .from("users")
+      .select("id, name")
 
-for(let j=i+1;j<data.length;j++){
+    const map: any = {}
+    users?.forEach(u => {
+      map[u.id] = u.name || "Unknown"
+    })
 
-const code1 = normalize(data[i].code || "")
-const code2 = normalize(data[j].code || "")
+    /* ===== DSU ===== */
 
-const score = similarity(code1,code2)
+    const dsu = new DSU(subs.length)
 
-if(score>0.8){
+    for (let i = 0; i < subs.length; i++) {
+      for (let j = i + 1; j < subs.length; j++) {
 
-results.push({
+        if (!subs[i].code || !subs[j].code) continue
 
-s1:{
-student_name:data[i].users?.[0]?.name
-},
+        const score = similarity(subs[i].code, subs[j].code)
 
-s2:{
-student_name:data[j].users?.[0]?.name
-},
+        if (score > 0.7) {
+          dsu.union(i, j)
+        }
+      }
+    }
 
-score
+    /* ===== GROUP ===== */
 
-})
+    const groups: any = {}
 
-}
+    for (let i = 0; i < subs.length; i++) {
 
-}
+      const root = dsu.find(i)
 
-}
+      if (!groups[root]) {
+        groups[root] = []
+      }
 
-return NextResponse.json(results)
+      groups[root].push({
+        id: subs[i].student_id,
+        name: map[subs[i].student_id] || "Unknown"
+      })
+    }
 
+    /* ===== FORMAT ===== */
+
+    const result: any[] = []
+
+    Object.values(groups).forEach((g: any) => {
+
+      if (g.length > 1) {
+
+        result.push({
+          student_ids: g.map((s: any) => s.id),
+          student_names: g.map((s: any) => s.name),
+          size: g.length,
+          similarity: 0,
+          pairs: []
+        })
+
+      }
+
+    })
+
+    /* ===== TÍNH SIMILARITY + PAIRS ===== */
+
+    for (let group of result) {
+
+      let total = 0
+      let count = 0
+      let pairs: any[] = []
+      for (let i = 0; i < subs.length; i++) {
+        for (let j = i + 1; j < subs.length; j++) {
+
+          if (!subs[i].code || !subs[j].code) continue
+
+          if (
+            group.student_ids.includes(subs[i].student_id) &&
+            group.student_ids.includes(subs[j].student_id)
+          ) {
+
+            const s = similarity(subs[i].code, subs[j].code)
+
+            total += s
+            count++
+
+            pairs.push({
+              a: map[subs[i].student_id] || "Unknown",
+              b: map[subs[j].student_id] || "Unknown",
+              a_id: subs[i].student_id,
+              b_id: subs[j].student_id,
+              score: Math.round(s * 100)
+            })
+          }
+        }
+      }
+
+      const avg = count > 0 ? total / count : 0
+
+      group.similarity = Math.round(avg * 100)
+      group.pairs = pairs
+    }
+
+    /* ===== SAVE DB ===== */
+
+    await supabase
+      .from("copy_groups")
+      .delete()
+      .eq("class_id", class_id)
+
+    if (result.length > 0) {
+
+      const rows = result.map(r => ({
+        class_id,
+        student_ids: r.student_ids,
+        student_names: r.student_names,
+        size: r.size,
+        similarity: r.similarity
+      }))
+
+      await supabase.from("copy_groups").insert(rows)
+    }
+
+    return NextResponse.json(result)
+
+  } catch (err: any) {
+
+    console.error("❌ DETECT COPY ERROR:", err)
+
+    return NextResponse.json({
+      error: err.message
+    })
+  }
 }
