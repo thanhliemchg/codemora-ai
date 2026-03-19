@@ -663,7 +663,7 @@ STT:i+1,
 
 Hoc_sinh:s.student_name,
 
-Loai_bai:s.type==="teacher" ? "GV giao" : "Tự sinh",
+Loai_bai:s?.type==="teacher" ? "GV giao" : "Tự sinh",
 
 AI:s.ai_score ?? "",
 
@@ -1867,7 +1867,13 @@ ${selectedSubmission?.id === s.id
 </td>
 
 <td className="border border-blue-600 px-4 py-2 text-center">
-{s.type="teacher" ? "GV giao" : "Tự sinh"}
+<span className={`px-2 py-1 rounded text-sm font-semibold
+  ${s?.type === "teacher"
+    ? "bg-blue-100 text-blue-700"
+    : "bg-purple-100 text-purple-700"}
+`}>
+  {s?.type === "teacher" ? "📘 GV giao" : "🧠 Tự sinh"}
+</span>
 </td>
 
 <td className="border border-blue-600 px-4 py-2 text-center">
