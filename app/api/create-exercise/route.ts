@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { source } from "framer-motion/client"
 
 const supabase = createClient(
 process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +14,18 @@ const form = await req.formData()
 const exercise = form.get("exercise")
 const class_id = form.get("class_id")
 const teacher_id = form.get("teacher_id")
+
+let tests:any[] = []
+
+try{
+  const raw = form.get("tests") as string
+
+  if(raw){
+    tests = JSON.parse(raw)
+  }
+}catch(e){
+  tests = []
+}
 
 if(!exercise || !class_id || !teacher_id){
 return NextResponse.json({
@@ -28,7 +41,8 @@ const {data:ex,error:exError} = await supabase
 exercise,
 class_id,
 teacher_id,
-source:"teacher"
+source:"teacher",
+test_cases:tests
 })
 .select()
 .single()
@@ -67,6 +81,7 @@ const rows = students.map((s:any)=>({
 student_id:s.id,
 class_id:class_id,
 exercise_id:ex.id,
+type:"teacher",
 status:"pending"
 
 }))

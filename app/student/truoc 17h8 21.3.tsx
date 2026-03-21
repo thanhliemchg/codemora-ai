@@ -39,14 +39,6 @@ const [history,setHistory] = useState<any[]>([])
 const [selectedHistory,setSelectedHistory] = useState<any>(null)
 const [showPassword,setShowPassword] = useState(false)
 
-const [testResult, setTestResult] = useState([])
-const total = testResult.length
-
-const passed = testResult.filter(t => t.passed).length
-
-const percent = total > 0 
-  ? Math.round((passed / total) * 100)
-  : 0
 const current = teacherExercises.find(e=>e.id===teacherExerciseId)
 const currentTeacherExercise = teacherExercises.find(
   e => e.id === teacherExerciseId
@@ -333,7 +325,6 @@ async function submitCode(){
     })
 
     const data = await res.json()
-    setTestResult(data.detail || [])
 
     console.log("SUBMIT RESULT:", data)
 
@@ -634,6 +625,9 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
 
 
 
+
+
+
 </div>
 
 </div>
@@ -818,7 +812,7 @@ onClick={()=>setSelectedHistory(h)}
 <td className="border p-2 text-center">{i+1}</td>
 
 <td className="border p-2 text-center">
-{h.exercise_id!=null ? "📘 GV giao":"🧠Tự sinh"}
+{h.exercise_id!=null ? "GV giao":"Tự sinh"}
 </td>
 
 <td className="border p-2 text-center">
@@ -983,67 +977,9 @@ Trạng thái
 
 <div className="bg-gray-50 border p-4 rounded-lg">
 
-{(() => {
-  let parsed: any = null
-
-  try {
-    parsed = JSON.parse(selectedHistory?.ai_feedback || "{}")
-  } catch {}
-
-  const feedback = parsed?.feedback || selectedHistory?.ai_feedback || ""
-  const tests = parsed?.detail || []
-
-  const total = tests.length
-  const passed = tests.filter((t:any) => t.passed).length
-  const percent = total ? Math.round((passed / total) * 100) : 0
-
-  return (
-    <div className="bg-white p-4 rounded-xl shadow mt-3">
-
-      {/* 🔥 AI FEEDBACK (MARKDOWN) */}
-      <h3 className="font-bold mb-2">🤖 AI nhận xét</h3>
-
-      <div className="prose prose-sm max-w-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {feedback}
-        </ReactMarkdown>
-      </div>
-
-      {/* 🔥 TEST RESULT */}
-      {tests.length > 0 && (
-        <div className="mt-4">
-
-          <p className="font-semibold mb-2">
-            📊 {passed}/{total} test ({percent}%)
-          </p>
-
-          {tests.map((t:any, i:number) => (
-            <div
-              key={i}
-              className={`p-2 mb-2 rounded ${
-                t.passed ? "bg-green-100" : "bg-red-100"
-              }`}
-            >
-              <p>
-                Test {i + 1}: {t.passed ? "✅ PASS" : "❌ FAIL"}
-              </p>
-
-              {!t.passed && (
-                <div className="text-sm mt-1">
-                  <p><b>Input:</b> {t.input}</p>
-                  <p><b>Expected:</b> {t.expected}</p>
-                  <p><b>Output:</b> {t.output}</p>
-                </div>
-              )}
-            </div>
-          ))}
-
-        </div>
-      )}
-
-    </div>
-  )
-})()}
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+{selectedHistory.ai_feedback || "Chưa có"}
+</ReactMarkdown>
 
 </div>
 

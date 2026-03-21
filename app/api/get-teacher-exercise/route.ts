@@ -50,6 +50,7 @@ const { data:submitted } = await supabase
 .select("exercise_id")
 .eq("student_id",student_id)
 .eq("type","teacher")
+.in("status",["submitted", "graded"])
 
 const submittedIds = submitted?.map(s=>s.exercise_id) || []
 

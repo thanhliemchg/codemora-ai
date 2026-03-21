@@ -1,6 +1,6 @@
 "use client"
 
-import { useState,useEffect, use } from "react"
+import { useState,useEffect } from "react"
 import * as XLSX from "xlsx"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -11,28 +11,16 @@ import TurndownService from "turndown"
 import Header from "../components/header"
 import ChangePassword from "../components/ChangePassword"
 import TestEditor from "../components/TestEditor"
-import { tr } from "framer-motion/client"
 export default function Teacher(){
- const router = useRouter()
+const router = useRouter()
 const searchParams = useSearchParams()
 const classId = searchParams.get("class")
 const tab = searchParams.get("tab") || "classes"
 
-const [selectedStudents, setSelectedStudents] = useState<string[]>([])
-const [view,setView] = useState("all")
-const [selectedStudent,setSelectedStudent] = useState<string | null>(null)
-const [selectedSubmission,setSelectedSubmission] = useState<any>(null)
-const [teacherScore,setTeacherScore] = useState("")
-const [teacherFeedback,setTeacherFeedback] = useState("")
 const detailRef = useRef<any>(null)
-
 
 const [classes,setClasses] = useState([])
 const [className,setClassName] = useState("")
-
-const [practiceSubmissions,setPracticeSubmissions] = useState<any[]>([])
-const [teacherExercises,setTeacherExercises] = useState<any[]>([])
-const [selectedExercise,setSelectedExercise] = useState<any>(null)
 
 const [copyGroups,setCopyGroups] = useState([])
 
@@ -43,10 +31,10 @@ active:[]
 const [submissions,setSubmissions] = useState<any[]>([])
 const [copyCases,setCopyCases] = useState([])
 
-
 const [exercises,setExercises] = useState([])
 const [exercise,setExercise] = useState("")
 
+const [selectedStudents,setSelectedStudents] = useState<string[]>([])
 
 const [file,setFile] = useState<any>(null)
 
@@ -63,9 +51,10 @@ const [exerciseMode,setExerciseMode]=useState("manual")
 const [preview,setPreview] = useState(false)
 const [scores,setScores] = useState<any>({})
 
-const [collapse, setCollapse] = useState(false)
+const [selectedSubmission,setSelectedSubmission] = useState<any>(null)
 
-const [viewMode,setViewMode] = useState<"teacher" | "practice">("teacher")
+const [teacherScore,setTeacherScore] = useState("")
+const [teacherFeedback,setTeacherFeedback] = useState("")
 
 const [filter,setFilter] = useState("submitted")
 const [statusFilter,setStatusFilter] = useState("all")
@@ -91,7 +80,6 @@ const [editingStudent,setEditingStudent] = useState<any>(null)
 
 const [tests,setTests] = useState<any[]>([])
 
- console.log("TYPE:", submissions.map(s=>s.type))
 
 useEffect(()=>{
 
@@ -127,7 +115,6 @@ loadStudents(classId,"")
 
 if(tab==="submissions"){
 loadSubmissions(classId,"")
-loadTeacherExercises(classId)
 }
 
 if(tab==="exercise"){
@@ -142,9 +129,7 @@ loadCopy()
 
 },[classId,tab])
 
-useEffect(()=>{
-  setSelectedStudent(null)
-},[view])
+
 
 function similarity(a:string,b:string){
 
@@ -702,32 +687,44 @@ XLSX.utils.book_append_sheet(workbook,worksheet,"Bai_nop")
 XLSX.writeFile(workbook,"bai_nop_lop.xlsx")
 
 }
+async function loadSubmissions(class_id:any,name:any){
 
-async function loadSubmissions(class_id:any,name:any, exercise_id?:string){
-
-  if(!class_id) return
-
-  let url = `/api/class-submissions?class_id=${class_id}`
-
-  if(exercise_id){
-    url += `&exercise_id=${exercise_id}`
-  }
-
-  const res = await fetch(url)
-  const data = await res.json()
-
-  console.log("TYPE:", data.map((s:any)=>s.type)) // check
-  setSubmissions(data || [])
+// nếu class_id lỗi thì dừng
+if(!class_id){
+console.log("class_id undefined")
+return
 }
 
-async function loadTeacherExercises(class_id:any){
+setSelectedClass(class_id)
+setSelectedClassName(name)
+router.push(`/teacher?tab=submissions&class=${class_id}`)
 
-  const res = await fetch(`/api/class-generated-exercises?class_id=${class_id}`)
-  const data = await res.json()
+try{
 
-  setTeacherExercises(data || [])
+const res = await fetch(`/api/class-submissions?class_id=${class_id}`)
+
+const data = await res.json()
+
+console.log("SUBMISSIONS:",data)
+
+// đảm bảo luôn là array
+if(Array.isArray(data)){
+setSubmissions(data)
+}else if(data?.data){
+setSubmissions(data.data)
+}else{
+setSubmissions([])
 }
 
+}catch(e){
+
+console.log("load submissions error",e)
+
+setSubmissions([])
+
+}
+
+}
 async function loadTeacherSubmissions(){
 
 const user = JSON.parse(localStorage.getItem("user")||"{}")
@@ -1210,7 +1207,7 @@ Học sinh
 
 <button
 onClick={()=>loadSubmissions(c.id,c.name)}
-className="bg-green-600 px-3 py-1 text-white rounded"
+className="bg-green-600 px-3 py-1 text-whiterounded"
 >
 Bài nộp
 </button>
@@ -1237,52 +1234,6 @@ Xoá lớp
 </tbody>
 
 </table>
-
-
-{practiceSubmissions.length > 0 && (
-
-<div className="bg-white p-4 rounded-xl shadow mt-6">
-
-  <h3 className="font-bold mb-3">🧠 Bài tự sinh</h3>
-
-  <table className="w-full">
-    <thead className="bg-purple-600 text-white">
-      <tr>
-        <th>STT</th>
-        <th>Học sinh</th>
-        <th>AI</th>
-        <th>GV</th>
-        <th>Trạng thái</th>
-      </tr>
-    </thead>
-
-    <tbody>
-    {practiceSubmissions.map((s,i)=>(
-      <tr
-        key={s.id}
-        onClick={()=>setSelectedSubmission(s)}
-        className="cursor-pointer hover:bg-purple-50"
-      >
-        <td>{i+1}</td>
-        <td className="flex items-center gap-2">
-          {s.student_name}
-
-          <span className="bg-purple-200 text-purple-700 px-2 rounded text-xs">
-            Practice
-          </span>
-        </td>
-        <td>{s.ai_score ?? "-"}</td>
-        <td>{s.teacher_score ?? "-"}</td>
-        <td>{s.status}</td>
-      </tr>
-    ))}
-    </tbody>
-  </table>
-
-</div>
-
-)}
-
 
 </div>
 
@@ -1763,326 +1714,266 @@ Không phát hiện code giống nhau
 </div>
 )}
 
+{tab==="submissions" && (
 
-{tab === "submissions" && (
+<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
 
-<div className="space-y-6">
-
-{/* ================= KPI ================= */}
-<div className="grid grid-cols-4 gap-4">
-
-  <div className="bg-purple-600 text-white p-4 rounded text-center">
-    <div>Tổng bài</div>
-    <div className="text-2xl font-bold">{totalAll}</div>
-  </div>
-
-  <div className="bg-yellow-500 text-white p-4 rounded text-center">
-    <div>Đã nộp</div>
-    <div className="text-2xl font-bold">{totalSubmitted}</div>
-  </div>
-
-  <div className="bg-green-600 text-white p-4 rounded text-center">
-    <div>Đã chấm</div>
-    <div className="text-2xl font-bold">{totalGraded}</div>
-  </div>
-
-  <div className="bg-red-500 text-white p-4 rounded text-center">
-    <div>Chưa nộp</div>
-    <div className="text-2xl font-bold">{totalPending}</div>
-  </div>
+<div className="flex justify-between items-center mb-3">
+<button
+onClick={exportMarkExcel}
+className="bg-green-600 px-3 py-1 text-white rounded"
+>
+Xuất Excel
+</button>
 
 </div>
 
+{submissions.length===0 ? (
 
-{/* ================= TỔNG HỢP ================= */}
-<div className="bg-white p-4 rounded-xl shadow">
+<div className="text-gray-500">
+Chưa có bài nộp
+</div>
 
-<div className="font-bold mb-3">📊 Tổng hợp lớp</div>
+) : (
 
-<table className="w-full text-sm">
+<>
+<div className="grid grid-cols-4 gap-4 mb-6">
+
+<div className="bg-purple-600 p-4 rounded text-center">
+<div className="text-sm text-white">Tổng bài</div>
+<div className="text-2xl font-bold text-white">{totalAll}</div>
+</div>
+
+<div className="bg-yellow-600 p-4 rounded text-center">
+<div className="text-sm text-white">Đã nộp</div>
+<div className="text-2xl font-bold text-white">{totalSubmitted}</div>
+</div>
+
+<div className="bg-green-600 p-4 rounded text-center">
+<div className="text-sm text-white">Đã chấm</div>
+<div className="text-2xl font-bold text-white">{totalGraded}</div>
+</div>
+
+<div className="bg-red-600 p-4 rounded text-center">
+<div className="text-sm text-white">Chưa nộp</div>
+<div className="text-2xl font-bold text-white">{totalPending}</div>
+</div>
+
+</div>
+
+<div className="flex gap-3 mb-4">
+
+<button
+onClick={()=>setStatusFilter("all")}
+className={`px-3 py-1 rounded
+${statusFilter==="all"
+? "bg-blue-600 text-white"
+: "bg-gray-200 text-gray-700"}
+`}
+>
+Tất cả
+</button>
+
+<button
+onClick={()=>setStatusFilter("submitted")}
+className={`px-3 py-1 rounded
+${statusFilter==="submitted"
+? "bg-yellow-600 text-white"
+: "bg-gray-200 text-gray-700"}
+`}
+>
+Đã nộp
+</button>
+
+<button
+onClick={()=>setStatusFilter("graded")}
+className={`px-3 py-1 rounded
+${statusFilter==="graded"
+? "bg-green-600 text-white"
+: "bg-gray-200 text-gray-700"}
+`}
+>
+Đã chấm
+</button>
+
+<button
+onClick={()=>setStatusFilter("pending")}
+className={`px-3 py-1 rounded
+${statusFilter==="pending"
+? "bg-red-600 text-white"
+: "bg-gray-200 text-gray-700"}
+`}
+>
+Chưa nộp
+</button>
+
+</div>
+<table className="w-full border-collapse text-fixed">
 <thead className="bg-blue-600 text-white">
 <tr>
-  <th>STT</th>
-  <th>Học sinh</th>
-  <th>📘 Số bài GV giao</th>
-  <th>🧠 Số bài HS tự sinh</th>
-  <th>Điểm TB AI</th>
-  <th>Điểm TB GV</th>
+<th className="border border-blue-600 px-4 py-2 text-center">STT</th>
+
+<th className="border border-blue-600 px-4 py-2 text-center">Họ và tên</th>
+
+<th className="border border-blue-600 px-4 py-2 text-center">Loại bài</th>
+
+<th className="border border-blue-600 px-4 py-2 text-center">Điểm AI chấm</th>
+
+<th className="border border-blue-600 px-4 py-2 text-center">Điểm GV chấm</th>
+
+<th className="border border-blue-600 px-4 py-2 text-center">Trạng thái</th>
+
 </tr>
+
 </thead>
+
 
 <tbody>
 
-{Object.values(
-  submissions.reduce((acc:any, s:any)=>{
-
-    if(!acc[s.student_name]){
-      acc[s.student_name] = {
-        name: s.student_name,
-        gv: 0,
-        practice: 0,
-        ai: [],
-        gvScore: []
-      }
-    }
-
-    if(s.type === "teacher") acc[s.student_name].gv++
-    else acc[s.student_name].practice++
-
-    if(s.ai_score != null) acc[s.student_name].ai.push(s.ai_score)
-    if(s.teacher_score != null) acc[s.student_name].gvScore.push(s.teacher_score)
-
-    return acc
-
-  }, {})
-).map((s:any, i:number)=>{
-
-  const avg = (arr:any[]) =>
-    arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : "-"
-
-  return (
-    <tr
-      key={i}
-      className="border text-center cursor-pointer hover:bg-gray-100"
-      onClick={()=>{
-        setSelectedStudent(s.name)
-        setSelectedSubmission(null)
-      }}
-    >
-      <td>{i+1}</td>
-      <td>{s.name}</td>
-      <td>{s.gv}</td>
-      <td>{s.practice}</td>
-      <td>{avg(s.ai)}</td>
-      <td>{avg(s.gvScore)}</td>
-    </tr>
-  )
-
-})}
-
-</tbody>
-</table>
-
-</div>
-
-
-{/* ================= MAIN ================= */}
-<div className="grid grid-cols-2 gap-2">
-
-{/* ===== NỘI DUNG ===== */}
-<div className="col-span-3 space-y-4">
-
-{/* TAB */}
-<div className="flex gap-2">
-
-<button
-onClick={()=>{
-  setView("teacher")
-  setSelectedSubmission(null)
-}}
-
-className={`px-3 py-1 rounded ${view==="teacher" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
->
-📘 GV giao
-</button>
-
-<button
-onClick={()=> {
-  setView("practice")
-  setSelectedSubmission(null)
-}}
-className={`px-3 py-1 rounded ${view==="practice" ? "bg-purple-600 text-white" : "bg-gray-200"}`}
->
-🧠 HS tự sinh
-</button>
-
-<button
-onClick={()=>{
-  setView("all")
-  setSelectedSubmission(null)
-}}
-className={`px-3 py-1 rounded ${view==="all" ? "bg-green-600 text-white" : "bg-gray-200"}`}
->
-📋 Tất cả
-</button>
-
-</div>
-
-
-{/* TABLE */}
-<div className="bg-white p-4 rounded-xl shadow">
-<table className="w-full table-auto text-sm">
-<thead className="bg-blue-600 text-white text-center">
-<tr>
-      <th className="p w-[60px] text-center">STT</th>
-      <th className="p text-center w-[35%]">Học sinh</th>
-      <th className="p w-[100px] text-center">Loại bài</th>
-      <th className="p w-[90px] text-center">Điểm AI</th>
-      <th className="p w-[90px] text-center">Điểm GV</th>
-      <th className="p w-[140px] text-center">Trạng thái</th>
-    </tr>
-</thead>
-
-<tbody>
 {submissions
-.filter((s:any)=>{
+.filter(s=>{
 
-  if(selectedStudent !==null && selectedStudent !==""){
-    if(s.student_name !== selectedStudent) return false
-  }
+if(statusFilter==="all") return true
 
-  if(view === "teacher") return s.type === "teacher"
-  if(view === "practice") return s.type === "practice"
+return s.status===statusFilter
 
-  return true
 })
-
-.map((s:any,i:number)=>(
+.map((s,index)=>(
 <tr
 key={s.id}
 onClick={()=>{
+setSelectedSubmission(s)
 
-  setSelectedSubmission(s)
-
-  setTimeout(()=>{
-    detailRef.current?.scrollIntoView({behavior:"smooth"})
-  },100)
+setTimeout(()=>{
+detailRef.current?.scrollIntoView({
+behavior:"smooth"
+})
+},100)
 
 }}
-className={`cursor-pointer border text-center hover:bg-blue-50
-${selectedSubmission?.id === s.id ? "bg-blue-100" : ""}`}
+className={`cursor-pointer hover:bg-blue-200
+${selectedSubmission?.id === s.id 
+? "bg-blue-900 border-l-4 border-blue-200"
+: ""}
+`}
 >
-
-<td>{i+1}</td>
-<td>{s.student_name}</td>
-
-<td>
-{s.type==="teacher"
-  ? <span className="bg-blue-100 px-2 rounded">📘 GV giao</span>
-  : <span className="bg-purple-200 px-2 rounded">🧠 Tự sinh</span>
-}
+<td className="w-12 border border-blue-600 px-2 py-2 text-center">
+  {index+1}
+</td>
+<td className="border border-blue-600 px-4 py-2">
+{s.student_name}
 </td>
 
-<td>{s.ai_score ?? "-"}</td>
-<td>{s.teacher_score ?? "-"}</td>
+<td className="border border-blue-600 px-4 py-2 text-center">
+<span className={`px-2 py-1 rounded text-sm font-semibold
+  ${s?.type === "teacher"
+    ? "bg-blue-100 text-blue-700"
+    : "bg-purple-100 text-purple-700"}
+`}>
+  {s?.type === "teacher" ? "📘 GV giao" : "🧠 Tự sinh"}
+</span>
+</td>
 
-<td>
-{s.status==="graded" && "✅ Đã chấm"}
-{s.status==="submitted" && "📥 Đã nộp"}
-{s.status==="pending" && "❌ Chưa nộp"}
+<td className="border border-blue-600 px-4 py-2 text-center">
+
+{s.ai_score !== null ? (
+
+<span className="bg-yellow-500 text-black px-2 py-1 rounded text-fixed">
+{s.ai_score}
+</span>
+
+) : "-"}
+
+</td>
+
+<td className="border border-blue-600 px-4 py-2 text-center">
+
+{s.teacher_score !== null ? (
+
+<span className="bg-green-500 text-white px-2 py-1 rounded text-fixed">
+{s.teacher_score}
+</span>
+
+) : "-"}
+
+</td>
+
+<td className="border border-blue-600 px-4 py-2 text-center">
+
+{s.status==="pending" && (
+<span className="text-gray-400">Chưa nộp</span>
+)}
+
+{s.status==="submitted" && (
+<span className="text-gray-700">Đã nộp</span>
+)}
+
+{s.status==="graded" && (
+<span className="text-green-400">Đã chấm</span>
+)}
+
 </td>
 
 </tr>
+
 ))}
 
 </tbody>
+
 </table>
 
-</div>
-
-
-{/* ===== CHI TIẾT ===== */}
-<div ref={detailRef}>
 
 {selectedSubmission && (
 
-<div className="bg-white p-4 rounded shadow">
+<div 
+ref={detailRef}
+className="mt-6 bg-white p-4 rounded">
 
-<div className="flex justify-between mb-3">
-<div className="font-bold">📄 CHI TIẾT BÀI LÀM</div>
-<button onClick={()=>setSelectedSubmission(null)}>❌</button>
+{/* ===== ĐỀ BÀI ===== */}
+
+<div className="bg-yellow-100 text-black p-3 rounded mb-4">
+
+<div className="font-semibold mb-2">
+📄 Đề bài
 </div>
 
-{/* ĐỀ */}
+<div className="prose max-w-none text-black">
+
 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-{selectedSubmission.exercise || "Không có đề"}
+{
+selectedSubmission.exercise || 
+selectedSubmission.exercise_text ||
+"Không có đề bài" 
+}
 </ReactMarkdown>
 
-{/* CODE */}
-<pre className="bg-black text-green-400 p-3 rounded mt-3">
-{selectedSubmission.code || "Không có code"}
+</div>
+
+</div>
+
+
+{/* ===== CODE HỌC SINH ===== */}
+<h2 className="font-bold mb-3">
+Code của {selectedSubmission.student_name}
+</h2>
+<pre className="bg-black text-green-400 p-4 rounded overflow-auto max-h-[300px] font-mono">
+{selectedSubmission.code || "không có code"}
 </pre>
+
 
 {/* ===== AI FEEDBACK ===== */}
 
-<div>
-
-<div className="font-semibold mb-2 text-gray-700">
-🤖 AI nhận xét
+<div className="mt-4 text-gray-700">
+AI nhận xét:
 </div>
 
-<div className="bg-gray-50 border p-4 rounded-lg">
-
-{(() => {
-
-  let parsed: any = null
-
-  try {
-    parsed = JSON.parse(selectedSubmission?.ai_feedback || "{}")
-  } catch {}
-
-  const feedback = parsed?.feedback || selectedSubmission?.ai_feedback || ""
-  const tests = parsed?.detail || []
-
-  const total = tests.length
-  const passed = tests.filter((t:any) => t.passed).length
-  const percent = total ? Math.round((passed / total) * 100) : 0
-
-  return (
-    <div className="bg-white p-4 rounded-xl shadow mt-3">
-
-      {/* 🔥 AI FEEDBACK */}
-      <h3 className="font-bold mb-2">🤖 AI nhận xét</h3>
-
-      <div className="prose prose-sm max-w-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {feedback}
-        </ReactMarkdown>
-      </div>
-
-      {/* 🔥 TEST RESULT */}
-      {tests.length > 0 && (
-        <div className="mt-4">
-
-          <p className="font-semibold mb-2">
-            📊 {passed}/{total} test ({percent}%)
-          </p>
-
-          {tests.map((t:any, i:number) => (
-            <div
-              key={i}
-              className={`p-2 mb-2 rounded ${
-                t.passed ? "bg-green-100" : "bg-red-100"
-              }`}
-            >
-              <p>
-                Test {i + 1}: {t.passed ? "✅ PASS" : "❌ FAIL"}
-              </p>
-
-              {!t.passed && (
-                <div className="text-sm mt-1">
-                  <p><b>Input:</b> {t.input}</p>
-                  <p><b>Expected:</b> {t.expected}</p>
-                  <p><b>Output:</b> {t.output}</p>
-                </div>
-              )}
-            </div>
-          ))}
-
-        </div>
-      )}
-
-    </div>
-  )
-
-})()}
-
-</div>
-</div>
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+{selectedSubmission.ai_feedback}
+</ReactMarkdown>
 
 {/* ===== GV FEEDBACK ===== */}
 
-<div className="mt-3 font-semibold">
+<div className="mt-4 text-green-300">
 Giáo viên nhận xét:
 </div>
 
@@ -2090,6 +1981,7 @@ Giáo viên nhận xét:
 {selectedSubmission.teacher_feedback || "Chưa có"}
 </div>
 
+{/* ===== CHẤM ĐIỂM ===== */}
 <textarea
 placeholder="Nhập nhận xét của giáo viên..."
 className="bg-white text-black w-full px-3 py-2 rounded border mt-3"
@@ -2123,17 +2015,16 @@ ${loadingScore
 {loadingScore ? "⏳ Đang duyệt..." : "✅ Duyệt điểm"}
 </button>
 
+
 </div>
 
 </div>
 
 )}
 
-</div>
+</>
 
-</div>
-
-</div>
+)}
 
 </div>
 

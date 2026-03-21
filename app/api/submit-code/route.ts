@@ -3,375 +3,357 @@ import { createClient } from "@supabase/supabase-js"
 import { GoogleGenAI } from "@google/genai"
 
 const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 const ai = new GoogleGenAI({
-apiKey: process.env.GOOGLE_API_KEY
+  apiKey: process.env.GOOGLE_API_KEY
 })
 
 /* ======================
-LỌC CODE RÁC (Python + C++)
+CHECK CODE RÁC
 ====================== */
-
 function isGarbageCode(code:string){
+  if(!code) return true
+  const c = code.trim()
 
-if(!code) return true
+  if(c.length < 8) return true
 
-const c = code.trim()
+  const lettersOnly = /^[a-zA-Z\s]+$/
+  if(lettersOnly.test(c)) return true
 
-/* ======================
-QUÁ NGẮN
-====================== */
+  const hasSymbol = /[(){};=<>]/.test(c)
+  if(!hasSymbol) return true
 
-if(c.length < 8) return true
+  const pythonKeywords = ["print","for","while","if","elif","else","def","return","input","range","import","class","lambda"]
+  const cppKeywords = ["#include","iostream","bits/stdc++.h","using namespace","std::","cout","cin","int main","return"]
 
+  const hasPython = pythonKeywords.some(k => c.includes(k))
+  const hasCpp = cppKeywords.some(k => c.includes(k))
 
-/* ======================
-CHỈ TOÀN CHỮ
-====================== */
+  if(!hasPython && !hasCpp) return true
 
-const lettersOnly = /^[a-zA-Z\s]+$/
-
-if(lettersOnly.test(c)){
-return true
+  return false
 }
 
-
 /* ======================
-KHÔNG CÓ KÝ TỰ LẬP TRÌNH
+API
 ====================== */
-
-const hasSymbol = /[(){};=<>]/.test(c)
-
-if(!hasSymbol){
-return true
-}
-
-
-/* ======================
-KEYWORD PYTHON
-====================== */
-
-const pythonKeywords = [
-"print","for","while","if","elif","else",
-"def","return","input","range","import",
-"class","lambda"
-]
-
-
-/* ======================
-KEYWORD C++
-====================== */
-
-const cppKeywords = [
-"#include",
-"iostream",
-"bits/stdc++.h",
-"using namespace",
-"std::",
-"cout",
-"cin",
-"int main",
-"return"
-]
-
-
-const hasPython = pythonKeywords.some(k => c.includes(k))
-const hasCpp = cppKeywords.some(k => c.includes(k))
-
-
-/* ======================
-KHÔNG PHẢI PYTHON HOẶC C++
-====================== */
-
-if(!hasPython && !hasCpp){
-return true
-}
-
-
-/* ======================
-CHỈ 1 DÒNG VÀ KHÔNG CÓ LOGIC
-====================== */
-
-const lines = c.split("\n")
-
-if(lines.length < 1 && c.length < 20){
-return true
-}
-
-return false
-}
 
 export async function POST(req: Request){
 
-const body = await req.json()
-
-const {
-student_id,
-exercise_id,
-code,
-language,
-type,
-exercise_text
-} = body
-
-if(!student_id || !code){
-return NextResponse.json({error:"Thiếu dữ liệu"})
-}
-if(isGarbageCode(code)){
-return NextResponse.json({
-error:"Code không hợp lệ"
-})
-}
-/* ======================
-lấy class_id
-====================== */
-
-const { data:userData } = await supabase
-.from("users")
-.select("class_id")
-.eq("id",student_id)
-.single()
-
-const class_id = userData?.class_id
-
-
-/* ======================
-LẤY ĐỀ BÀI THẬT
-====================== */
-
-let realExerciseText = exercise_text
-
-if(type==="teacher" && exercise_id){
-
-try{
-
-const { data:ex } = await supabase
-.from("generated_exercises")
-.select("exercise")
-.eq("id",exercise_id)
-.single()
-
-if(ex){
-realExerciseText = ex.exercise
-}
-
-}catch(e){
-console.log("Lỗi lấy đề bài",e)
-}
-
-}
-
-
-/* ======================
-AI CHẤM BÀI
-====================== */
-
-let ai_score: number | null = null
-let ai_feedback = ""
-
-if(realExerciseText){
-
   try{
 
-    const prompt = `
-Bạn là giáo viên lập trình.
+    const body = await req.json()
 
-Đề bài:
-${realExerciseText}
+    const {
+      student_id,
+      exercise_id,
+      code,
+      language,
+      type,
+      submission_id
+    } = body
 
-Code học sinh:
+    if(!student_id || !code){
+      return NextResponse.json({ error:"Thiếu dữ liệu" })
+    }
+
+    if(isGarbageCode(code)){
+      return NextResponse.json({ error:"Code không hợp lệ" })
+    }
+
+    /* ======================
+    LẤY TEST CASE
+    ====================== */
+
+    let tests:any[] = []
+
+    // 🔹 bài GV
+    if(type==="teacher" && exercise_id){
+
+      const { data:ex } = await supabase
+        .from("generated_exercises")
+        .select("test_cases")
+        .eq("id",exercise_id)
+        .single()
+
+      tests = ex?.test_cases || []
+    }
+
+    // 🔹 bài tự sinh
+    else if(type==="practice"){
+
+      if(!submission_id){
+        return NextResponse.json({
+          error:"Thiếu submission_id"
+        })
+      }
+
+      const { data:sub } = await supabase
+        .from("submissions")
+        .select("test_cases")
+        .eq("id", submission_id)
+        .single()
+
+      tests = sub?.test_cases || []
+    }
+
+    if(!tests.length){
+      return NextResponse.json({
+        error:"Không có test case"
+      })
+    }
+
+    tests = tests.slice(0,10)
+
+    /* ======================
+    CHẤM TEST
+    ====================== */
+
+    let detail:any[] = []
+    let passed = 0
+    const total = tests.length
+
+    try{
+
+      const judgeRes = await fetch(
+        "https://codemora-judge-production.up.railway.app/run-batch",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body: JSON.stringify({
+            code,
+            language,
+            tests
+          })
+        }
+      )
+
+      const judgeData = await judgeRes.json()
+      const results = judgeData.results || []
+
+      function normalize(s:any){
+        return String(s)
+          .trim()
+          .replace(/\s+/g, " ")
+      }
+
+detail = results.map((r:any, i:number) => {
+
+  const expected = tests[i]?.output
+
+  const ok = normalize(r.output) === normalize(expected)
+
+  if(ok) passed++
+
+  return {
+    input: tests[i]?.input,
+    expected,
+    output: r.output,
+    passed: ok
+  }
+})
+    }catch(e){
+      console.log("Judge error:", e)
+    }
+
+    /* ======================
+    SCORE
+    ====================== */
+
+    const ai_score = total > 0
+      ? Math.round((passed / total) * 10)
+      : 0
+
+    /* ======================
+    AI FEEDBACK
+    ====================== */
+
+    let ai_feedback_text = ""
+
+    if(passed < total){
+
+      const failedTests = detail
+        .filter(t => !t.passed)
+        .slice(0,3)
+
+/* ===== LẤY ĐỀ BÀI ===== */
+let exercise_text = ""
+
+/* ===== BÀI GV ===== */
+if(type === "teacher" && exercise_id){
+
+  const { data:ex } = await supabase
+    .from("generated_exercises")
+    .select("exercise")
+    .eq("id", exercise_id)
+    .single()
+
+  exercise_text = ex?.content || ""
+}
+
+/* ===== BÀI TỰ SINH ===== */
+else if(type === "practice" && submission_id){
+
+  const { data:sub } = await supabase
+    .from("submissions")
+    .select("exercise_text")
+    .eq("id", submission_id)
+    .single()
+
+  exercise_text = sub?.exercise_text || ""
+}
+
+      const promptAI = `
+Bạn là giáo viên chấm bài lập trình.
+
+🎯 Nhiệm vụ:
+Phân tích bài làm của học sinh dựa trên:
+- Đề bài
+- Code
+- Kết quả của tất cảtest
+
+=====================
+📘 ĐỀ BÀI:
+${exercise_text || "Không có"}
+
+=====================
+💻 CODE HỌC SINH:
 ${code}
 
-Hãy:
-1. kiểm tra đúng/sai
-2. nhận xét chi tiết
-3. cho điểm từ 0 đến 10
+=====================
+📊 KẾT QUẢ:
+${passed}/${total} test passed
 
-⚠️ Chỉ trả JSON THUẦN, KHÔNG markdown:
+=====================
+❌ TEST SAI:
+${failedTests.length > 0 
+? failedTests.map((t,i)=>`
+Test ${i+1}
+Input: ${t.input}
+Expected: ${t.expected}
+Output: ${t.output}
+`).join("\n")
+: "Không có test sai"}
 
-{
-"score": number,
-"feedback": "..."
-}
+=====================
+📌 YÊU CẦU:
+
+1. 🔴 Chỉ ra lỗi chính (1 câu)
+2. 🧠 Giải thích ngắn gọn (2-3 câu dễ hiểu)
+3. 🛠 Gợi ý sửa cụ thể dựa trên đề bài (không viết lại code)
+
+=====================
+⚠️ QUY ĐỊNH:
+
+- Không viết lại toàn bộ code
+- Ngắn gọn, dễ hiểu
+- Trả lời bằng tiếng Việt
+- Viết markdown rõ ràng
+
+=====================
+🎁 BONUS (QUAN TRỌNG):
+
+- Nếu sai nhiều test → nhấn mạnh lỗi logic
+- Nếu sai ít test → gợi ý edge case
+- Nếu output đúng nhưng vẫn fail → nhắc kiểm tra format (space, newline)
+- Nếu dùng sai input → nhắc cách đọc input
+- Nếu code có dấu hiệu sai cấu trúc → chỉ ra vị trí sai
+
+=====================
+✍️ FORMAT TRẢ LỜI:
+
+## ❌ Lỗi chính
+...
+
+## 💡 Giải thích
+...
+
+## 🛠 Gợi ý sửa
+...
+
+## 🎯 Nhận xét thêm (ngắn)
+...
 `
 
-    const response = await ai.models.generateContent({
-      model:"gemini-2.5-flash",
-      contents:prompt
+      try{
+        const aiRes = await ai.models.generateContent({
+          model:"gemini-2.5-flash",
+          contents: promptAI
+        })
+
+        ai_feedback_text =
+          aiRes.candidates?.[0]?.content?.parts?.[0]?.text || ""
+
+      }catch(e){
+        console.log("AI error:", e)
+      }
+    }
+
+    const ai_feedback = passed === total
+      ? "🎉 AC (Accepted) - Code đúng hoàn toàn!"
+      : `🎯 ${passed}/${total} test passed\n\n${ai_feedback_text}`
+
+    /* ======================
+    UPDATE DB
+    ====================== */
+
+    if(type === "practice" && submission_id){
+
+      await supabase
+        .from("submissions")
+        .update({
+          code,
+          language,
+          ai_score,
+          ai_feedback: JSON.stringify({
+            feedback: ai_feedback,
+            detail
+          }),
+          status: "submitted"
+        })
+        .eq("id", submission_id)
+    }
+
+    if(type === "teacher" && exercise_id){
+
+      await supabase
+        .from("submissions")
+        .update({
+          code,
+          language,
+          ai_score,
+          ai_feedback: JSON.stringify({
+            feedback: ai_feedback,
+            detail
+          }),
+          status: "submitted"
+        })
+        .eq("student_id", student_id)
+        .eq("exercise_id", exercise_id)
+    }
+
+    /* ======================
+    RETURN
+    ====================== */
+
+    return NextResponse.json({
+      success:true,
+      ai_score,
+      ai_feedback,
+      detail
     })
 
-    const text = response.text || ""
+  }catch(err){
 
-    console.log("AI RAW:", text)
+    console.log(err)
 
-    // =========================
-    // 1. LÀM SẠCH TEXT
-    // =========================
-    const clean = text
-      .replace(/```json/g,"")
-      .replace(/```/g,"")
-      .trim()
-
-    // =========================
-    // 2. LẤY JSON TRONG TEXT
-    // =========================
-    const jsonMatch = clean.match(/\{[\s\S]*\}/)
-
-    if(jsonMatch){
-
-      try{
-        const parsed = JSON.parse(jsonMatch[0])
-
-        ai_score = Number(parsed.score)
-        ai_feedback = parsed.feedback || clean
-
-      }catch{
-        console.log("Parse JSON lỗi")
-      }
-
-    }
-
-    // =========================
-    // 3. NẾU KHÔNG CÓ JSON → TỰ ĐỌC ĐIỂM
-    // =========================
-    if(ai_score === null){
-
-      // tìm dạng: 8/10
-      const scoreMatch = clean.match(/(\d+(\.\d+)?)\s*\/\s*10/)
-
-      if(scoreMatch){
-        ai_score = Number(scoreMatch[1])
-      }
-
-    }
-
-    // =========================
-    // 4. NẾU VẪN NULL → TÌM SỐ BẤT KỲ
-    // =========================
-    if(ai_score === null){
-
-      const numberMatch = clean.match(/\b([0-9]|10)\b/)
-
-      if(numberMatch){
-        ai_score = Number(numberMatch[1])
-      }
-
-    }
-
-    // =========================
-    // 5. FALLBACK CUỐI
-    // =========================
-    if(ai_score === null){
-      ai_score = 0
-    }
-
-    if(!ai_feedback){
-      ai_feedback = clean
-    }
-
-  }catch(e){
-
-    console.log("AI lỗi:", e)
-
-    ai_score = 0
-    ai_feedback = "AI không phản hồi"
-
+    return NextResponse.json({
+      error:"Server lỗi"
+    })
   }
-
-}
-
-
-/* ======================
-BÀI GIÁO VIÊN GIAO
-====================== */
-
-if(type==="teacher"){
-
-const { data:exist } = await supabase
-.from("submissions")
-.select("id")
-.eq("student_id",student_id)
-.eq("exercise_id",exercise_id)
-.limit(1)
-
-if(exist && exist.length>0){
-
-const { error } = await supabase
-.from("submissions")
-.update({
-code,
-language,
-type:type,
-status:"submitted",
-exercise_text,
-ai_score,
-ai_feedback
-})
-.eq("student_id",student_id)
-.eq("exercise_id",exercise_id)
-
-if(error){
-return NextResponse.json({error:error.message})
-}
-
-}else{
-
-const { error } = await supabase
-.from("submissions")
-.insert({
-student_id,
-class_id,
-exercise_id,
-code,
-language,
-type:type,
-status:"submitted",
-exercise_text,
-ai_score,
-ai_feedback
-})
-
-if(error){
-return NextResponse.json({error:error.message})
-}
-
-}
-
-return NextResponse.json({
-message:"Nộp bài thành công"
-})
-
-}
-
-
-/* ======================
-BÀI TỰ SINH
-====================== */
-
-const { error } = await supabase
-.from("submissions")
-.insert({
-student_id,
-class_id,
-exercise_id:null,
-code,
-language,
-type:"practice",
-exercise_text:exercise_text || null,
-status:"submitted",
-ai_score,
-ai_feedback
-})
-
-if(error){
-return NextResponse.json({error:error.message})
-}
-
-return NextResponse.json({
-message:"Nộp bài thành công"
-})
-
 }

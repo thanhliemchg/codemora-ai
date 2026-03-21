@@ -14,8 +14,6 @@ const [teacherExerciseId,setTeacherExerciseId] = useState<string | null>(null)
 const [teacherExercises,setTeacherExercises] = useState<any[]>([])
 const [selectedExercise,setselectedExercise] = useState<any>(null)
 
-const [submissionId, setSubmissionId] = useState<string | null>(null)
-
 const [code,setCode] = useState("")
 const [language,setLanguage] = useState("python")
 
@@ -28,7 +26,6 @@ const [loadingExercise,setLoadingExercise] = useState(false)
 const [tab,setTab] = useState("dashboard")
 
 const [user,setUser] = useState<any>(null)
-const [tests, setTests] = useState<any[]>([])
 
 const [submitType,setSubmitType] = useState("teacher")
 
@@ -39,20 +36,12 @@ const [history,setHistory] = useState<any[]>([])
 const [selectedHistory,setSelectedHistory] = useState<any>(null)
 const [showPassword,setShowPassword] = useState(false)
 
-const [testResult, setTestResult] = useState([])
-const total = testResult.length
-
-const passed = testResult.filter(t => t.passed).length
-
-const percent = total > 0 
-  ? Math.round((passed / total) * 100)
-  : 0
 const current = teacherExercises.find(e=>e.id===teacherExerciseId)
 const currentTeacherExercise = teacherExercises.find(
   e => e.id === teacherExerciseId
 )
 
-const isSubmittedCurrent = currentTeacherExercise?.submitted === true
+const isSubmittedCurrent = currentTeacherExercise?.submitted
 /* ======================
 PHÂN TÍCH CODE
 ====================== */
@@ -188,8 +177,7 @@ if(data.error){
 }
 
 setExercise(data.exercise)
-setTests(data.test_cases || data.tests || [])
-setSubmissionId(data.submission_id)
+setTests(data.tests)
 }
 
 /* ======================
@@ -226,6 +214,8 @@ const user = JSON.parse(u)
 
 const res = await fetch(`/api/get-teacher-exercise?student_id=${user.id}`)
 const data = await res.json()
+
+// 🔥 QUAN TRỌNG
 setTeacherExercises(data)
 
 }
@@ -254,31 +244,8 @@ reader.readAsText(file)
 
 }
 
-/* ======================
-LOAD BÀI TẬP TỰ SINH
-====================== */
-async function loadPractice(){
 
-  if(!user?.id) return
 
-  const res = await fetch(
-    `/api/get-current-practice?student_id=${user.id}`
-  )
-
-  const data = await res.json()
-
-  console.log("LOAD PRACTICE:", data)
-
-  if(data.submission&& data.submission.id){
-    setExercise(data.submission.exercise_text || "")
-    setTests(data.submission.test_cases || [])
-    setSubmissionId(data.submission.id)
-  }else{
-    setExercise("")
-    setTests([])
-    setSubmissionId(null)
-  }
-}
 /* ======================
 NOP BAI
 ====================== */
@@ -300,17 +267,13 @@ async function submitCode(){
     alert("Bạn chưa sinh bài tập")
     return
   }
-  if(submitType==="practice" && !submissionId){
-  alert("❌ Không tìm thấy bài tự sinh (submission_id)")
-  return
-  }
+
   setSubmitting(true)
 
   console.log("Submit:",{
     student_id:user.id,
     exercise_id: teacherExerciseId,
-    type: submitType,
-    submissionId
+    type: submitType
   })
 
   try{
@@ -322,25 +285,28 @@ async function submitCode(){
       },
       body: JSON.stringify({
         student_id:user.id,
-        submission_id: submitType === "practice" ? submissionId : null,
         class_id:user.class_id,
+
         exercise_id: submitType==="teacher" ? teacherExerciseId : null,
+
         code,
         language,
+
         type: submitType==="teacher" ? "teacher" : "practice",
+
         exercise_text: submitType==="teacher" ? null : exercise
       })
     })
 
     const data = await res.json()
-    setTestResult(data.detail || [])
 
     console.log("SUBMIT RESULT:", data)
 
     setSubmitting(false)
 
-    if(!res.ok ||data.error){
-      alert("❌ " + data.error || "Server lỗi")
+    // 🔥 FIX CHUẨN
+    if(!data.success){
+      alert("❌ " + data.error)
       return
     }
 
@@ -355,6 +321,7 @@ async function submitCode(){
             : ex
         )
       )
+
       alert(`✅ Nộp bài OK\nĐiểm: ${data.ai_score}`)
 
     }else{
@@ -396,33 +363,27 @@ USE EFFECT
 ====================== */
 
 useEffect(()=>{
-  const u = localStorage.getItem("user")
 
-  if(!u){
-    window.location.href="/login"
-    return
-  }
+const u = localStorage.getItem("user")
 
-  const parsed = JSON.parse(u)
+if(!u){
+window.location.href="/login"
+return
+}
 
-  if(parsed.role !== "student"){
-    window.location.href="/teacher"
-    return
-  }
+const user = JSON.parse(u)
 
-  setUser(parsed)
+if(user.role !== "student"){
+window.location.href="/teacher"
+return
+}
+
+setUser(user)
+
+loadTeacherExercise()
+loadHistory()
 
 },[])
-
-
-useEffect(()=>{
-  if(!user?.id) return
-
-  loadTeacherExercise()
-  loadHistory()
-  loadPractice()
-
-},[user?.id]) 
 
 
 
@@ -479,7 +440,9 @@ tab==="exercise"
 */}
 </ul>
 
-
+<div className="mt-auto pt-10 text-sm opacity-80">
+Hệ thống chấm bài AI
+</div>
 
 </div>
 
@@ -634,6 +597,9 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
 
 
 
+
+
+
 </div>
 
 </div>
@@ -781,15 +747,11 @@ Tổng bài: {history.length}
 </div>
 
 <div className="bg-green-100 px-3 py-2 rounded">
-  Đã chấm: {history.filter(h => h.status === "graded").length}
+Đã chấm: {history.filter(h=>h.status==="graded").length}
 </div>
 
 <div className="bg-yellow-100 px-3 py-2 rounded">
-  Đã nộp (chờ chấm): {history.filter(h => h.status === "submitted").length}
-</div>
-
-<div className="bg-red-100 px-3 py-2 rounded">
-  Chưa nộp: {history.filter(h => h.status === "pending").length}
+Chờ chấm: {history.filter(h=>h.status!=="graded").length}
 </div>
 
 </div>
@@ -818,7 +780,7 @@ onClick={()=>setSelectedHistory(h)}
 <td className="border p-2 text-center">{i+1}</td>
 
 <td className="border p-2 text-center">
-{h.exercise_id!=null ? "📘 GV giao":"🧠Tự sinh"}
+{h.exercise_id!=null ? "GV giao":"Tự sinh"}
 </td>
 
 <td className="border p-2 text-center">
@@ -830,11 +792,7 @@ onClick={()=>setSelectedHistory(h)}
 </td>
 
 <td className="border p-2 text-center">
-  {{
-    pending: "Chưa nộp",
-    submitted: "Đã nộp",
-    graded: "Đã chấm"
-  }[h.status || "pending"]}
+{h.status==="graded"?"Đã chấm":"Đã nộp"}
 </td>
 
 <td className="border p-2 text-center">
@@ -983,67 +941,9 @@ Trạng thái
 
 <div className="bg-gray-50 border p-4 rounded-lg">
 
-{(() => {
-  let parsed: any = null
-
-  try {
-    parsed = JSON.parse(selectedHistory?.ai_feedback || "{}")
-  } catch {}
-
-  const feedback = parsed?.feedback || selectedHistory?.ai_feedback || ""
-  const tests = parsed?.detail || []
-
-  const total = tests.length
-  const passed = tests.filter((t:any) => t.passed).length
-  const percent = total ? Math.round((passed / total) * 100) : 0
-
-  return (
-    <div className="bg-white p-4 rounded-xl shadow mt-3">
-
-      {/* 🔥 AI FEEDBACK (MARKDOWN) */}
-      <h3 className="font-bold mb-2">🤖 AI nhận xét</h3>
-
-      <div className="prose prose-sm max-w-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {feedback}
-        </ReactMarkdown>
-      </div>
-
-      {/* 🔥 TEST RESULT */}
-      {tests.length > 0 && (
-        <div className="mt-4">
-
-          <p className="font-semibold mb-2">
-            📊 {passed}/{total} test ({percent}%)
-          </p>
-
-          {tests.map((t:any, i:number) => (
-            <div
-              key={i}
-              className={`p-2 mb-2 rounded ${
-                t.passed ? "bg-green-100" : "bg-red-100"
-              }`}
-            >
-              <p>
-                Test {i + 1}: {t.passed ? "✅ PASS" : "❌ FAIL"}
-              </p>
-
-              {!t.passed && (
-                <div className="text-sm mt-1">
-                  <p><b>Input:</b> {t.input}</p>
-                  <p><b>Expected:</b> {t.expected}</p>
-                  <p><b>Output:</b> {t.output}</p>
-                </div>
-              )}
-            </div>
-          ))}
-
-        </div>
-      )}
-
-    </div>
-  )
-})()}
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+{selectedHistory.ai_feedback || "Chưa có"}
+</ReactMarkdown>
 
 </div>
 
