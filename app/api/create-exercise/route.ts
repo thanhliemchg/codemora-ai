@@ -97,6 +97,7 @@ if(send_all){
     .select("id")
     .in("id", student_ids)
     .eq("class_id", class_id)
+    .eq("status","active")
 
   if(error){
     return NextResponse.json({ error:error.message })
@@ -111,7 +112,7 @@ if(send_all){
     class_id:class_id,
     exercise_id:ex.id,
     type:"teacher",
-    status:"pending"
+    status:"active"
   }))
 
   const {error:subError} = await supabase

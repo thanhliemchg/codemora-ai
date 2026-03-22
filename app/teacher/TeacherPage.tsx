@@ -26,7 +26,7 @@ const [selectedSubmission,setSelectedSubmission] = useState<any>(null)
 const [teacherScore,setTeacherScore] = useState("")
 const [teacherFeedback,setTeacherFeedback] = useState("")
 const detailRef = useRef<any>(null)
-
+const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null)
 
 const [classes,setClasses] = useState([])
 const [className,setClassName] = useState("")
@@ -49,6 +49,7 @@ const [copyCases,setCopyCases] = useState([])
 const [exercises,setExercises] = useState([])
 const [exercise,setExercise] = useState("")
 
+const [showModal, setShowModal] = useState(false)
 
 const [file,setFile] = useState<any>(null)
 
@@ -150,30 +151,15 @@ useEffect(()=>{
   setSelectedStudent(null)
 },[view])
 
-function similarity(a:string,b:string){
-
-  const clean = (s:string)=>
-    s.replace(/\s/g,"").toLowerCase()
-
-  const s1 = clean(a)
-  const s2 = clean(b)
-
-  let dp = Array(s1.length+1).fill(0).map(()=>Array(s2.length+1).fill(0))
-
-  for(let i=1;i<=s1.length;i++){
-    for(let j=1;j<=s2.length;j++){
-      if(s1[i-1]===s2[j-1]){
-        dp[i][j] = dp[i-1][j-1] + 1
-      }else{
-        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1])
-      }
-    }
+useEffect(()=>{
+  if(selectedClass){
+    loadExercises(selectedClass)
   }
+},[selectedClass])
 
-  const lcs = dp[s1.length][s2.length]
-
-  return lcs / Math.max(s1.length, s2.length)
-}
+useEffect(()=>{
+  setShowModal(false)
+},[tab])
 
 function parseExercise(text:any){
 
@@ -799,12 +785,19 @@ async function saveScore(id:any, score:any){
 
 async function detectCopy(){
 
-  const res = await fetch(`/api/detect-copy?class_id=${selectedClass}`)
+  if(!selectedExercise?.id){
+    alert("👉 Vui lòng chọn bài trước khi quét")
+    return
+  }
+
+  const res = await fetch(
+    `/api/detect-copy?class_id=${selectedClass}&exercise_id=${selectedExercise.id}`
+  )
+
   const data = await res.json()
 
   setCopyGroups(data)
 }
-
 async function loadCopy(){
 
   const res = await fetch(`/api/get-copy?class_id=${selectedClass}`)
@@ -836,6 +829,9 @@ const res = await fetch(`/api/class-generated-exercises?class_id=${class_id}`)
 const data = await res.json()
 
 setExercises(data)
+if (data.length > 0) {
+  setSelectedExercise(data[0])
+}
 
 }
 
@@ -950,7 +946,7 @@ const totalSubmissions = submissions.length
 const allStudents = (() => {
   const map = new Map()
 
-  ;[...(students.pending||[]), ...(students.active||[])]
+  ;[...(students.active||[])]
   .forEach(s => map.set(s.id, s))
 
   return Array.from(map.values())
@@ -1515,13 +1511,13 @@ onChange={(e)=>setExercise(e.target.value)}
   <div className="flex justify-between items-center p-1 border-b bg-gray-50">
 
     <div className="font-semibold text-gray-700">
-      👨‍🎓 Chọn học sinh ({allStudents.length})
+      👨‍🎓 Chọn học sinh ({allStudents.filter(s => s.status === "active").length})
     </div>
 
     <div className="flex gap-2">
 
       <button
-        onClick={()=>setSelectedStudents(allStudents.map(s=>s.id))}
+        onClick={()=>setSelectedStudents(allStudents.filter(s => s.status === "active").map(s=>s.id))}
         className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded"
       >
         Chọn tất cả
@@ -1729,6 +1725,7 @@ Gửi bài
     setSelectedExercise(e)
     setTests(Array.isArray(e.test_cases) ? e.test_cases : [])
     setEditContent(e.exercise)
+    setShowModal(true)
     }}
   >
     ▶ Xem đề
@@ -1762,7 +1759,7 @@ Gửi bài
 </tbody>
 
 </table>
-{selectedExercise && (
+{showModal && selectedExercise && (
   <div className="fixed inset-0 z-50 flex items-center justify-center">
 
     {/* overlay */}
@@ -1771,6 +1768,7 @@ Gửi bài
       onClick={()=>{
         setSelectedExercise(null)
         setTests([])
+        setShowModal(false)
       }}
     />
 
@@ -1854,117 +1852,183 @@ Gửi bài
 
 <div className="bg-white p-6 rounded-xl shadow-sm mb-6">
 
-<h1 className="text-xl font-semibold mb-4">
-🚨 Các nhóm HS có code giống nhau:
-</h1>
+  {/* ================= CHỌN BÀI ================= */}
+  <div className="bg-white p-4 rounded-xl shadow mb-4">
 
-<button
-onClick={detectCopy}
-className="bg-red-600 text-white px-3 py-1 rounded"
->
-🔥 Quét lại
-</button>
+<h2 className="font-bold mb-3 text-lg">📘 Chọn bài</h2>
 
-{copyGroups.map((g:any,i)=>(
+<div className="space-y-2 max-h-[300px] overflow-y-auto">
 
-<div 
-  key={i}
-  onClick={()=>{
-    setSelectedGroup(i)
-    loadGroupCode(g.student_ids)
-  }}
-  className="bg-red-100 border border-red-300 p-4 rounded mb-4 cursor-pointer hover:bg-red-200"
->
+{exercises.map((ex:any,index:number)=>{
 
-<div className="font-bold text-red-700">
-🚨 Nhóm {i+1} ({g.size} học sinh)
-</div>
+  const title = ex.exercise
+    ?.replace(/[#*]/g,"")
+    ?.split("\n")[0]
+    ?.slice(0,60)
 
-{/* 🔥 % giống */}
-<div className="text-sm text-red-600 mt-1">
-🔥 Độ giống: {g.similarity}%
-</div>
+  return(
+    <div
+      key={ex.id}
+      onClick={()=>setSelectedExercise(ex)}
+      className={`
+        p-3 rounded-lg border cursor-pointer transition
+        ${selectedExercise?.id===ex.id
+          ? "bg-blue-50 border-blue-400"
+          : "bg-white hover:bg-gray-50"}
+      `}
+    >
 
-{/* 👥 danh sách */}
-<div className="mt-2 text-gray-800">
-{g.student_names.join(" , ")}
-</div>
+      <div className="flex justify-between">
 
-{/* 🔍 chi tiết từng cặp */}
-<div className="mt-2 text-xs text-gray-600">
-{g.pairs?.map((p:any,idx:number)=>(
-  <div 
-  key={idx}
-  onClick={(e)=>{
-    e.stopPropagation() // tránh click nhóm
-    setSelectedPair(p)
-    loadPairCode(p)
-  }}
-  className="cursor-pointer hover:text-red-600 transition"
->
-  🔍 {p.a} - {p.b}: {p.score}%
-</div>
-))}
-</div>
+        <div className="font-semibold">
+          📘 Bài {index+1}
+        </div>
+
+        <div className="text-xs text-gray-400">
+          {new Date(ex.created_at).toLocaleDateString()}
+        </div>
+
+      </div>
+
+      <div className="text-sm text-gray-600 mt-1">
+        {title || "Bài tập"}
+      </div>
+
+    </div>
+  )
+})}
 
 </div>
-))}
-{copyGroups.length===0 &&(
-<div className="text-gray-400">
-Không phát hiện code giống nhau
 </div>
-)}
 
-{selectedGroup !== null && copyGroups[selectedGroup]?.pairs?.length > 0 && (
+  {/* ================= HEADER ================= */}
+  <h1 className="text-xl font-semibold mb-2">
+    🚨 Phát hiện copy code
+  </h1>
 
-  <div className="mt-6">
+  {/* 🔥 hiển thị bài đang chọn */}
+  {selectedExercise && (
+    <div className="mb-3 text-blue-600 font-medium">
+      👉 Đang chọn: {
+  selectedExercise?.exercise
+    ?.replace(/[#*]/g,"")
+    ?.slice(0,40)
+}
+    </div>
+  )}
 
-    <h2 className="text-xl font-bold mb-4">
-      📄 So sánh code
-    </h2>
-
-    {copyGroups[selectedGroup].pairs.map((p:any,idx:number)=>(
-
-  <div 
-    key={idx}
-    onClick={()=>loadPairCode(p,idx)}   // 🔥 THÊM DÒNG NÀY
-    className="cursor-pointer"
+  {/* ================= BUTTON ================= */}
+  <button
+    onClick={detectCopy}
+    className="bg-red-600 text-white px-3 py-1 rounded mb-4"
   >
+    🔍 Quét copy bài này
+  </button>
 
-    <div className="flex justify-between mb-3 text-sm">
+  {/* ================= KẾT QUẢ ================= */}
+  {copyGroups.length === 0 && (
+    <div className="text-gray-400">
+      👉 Chưa có dữ liệu, hãy chọn bài và bấm quét
+    </div>
+  )}
 
-      <div className="text-blue-400">
-        👤 {p.a}
+  {copyGroups.map((g:any,i)=>(
+
+    <div 
+      key={i}
+      onClick={()=>{
+        setSelectedGroup(i)
+        loadGroupCode(g.student_ids)
+      }}
+      className="bg-red-100 border border-red-300 p-4 rounded mb-4 cursor-pointer hover:bg-red-200"
+    >
+
+      <div className="font-bold text-red-700">
+        🚨 Nhóm {i+1} ({g.size} học sinh)
       </div>
 
-      <div className="text-red-400">
-        🔥 {p.score}%
+      <div className="text-sm text-red-600 mt-1">
+        🔥 Độ giống: {g.similarity}%
       </div>
 
-      <div className="text-blue-400">
-        👤 {p.b}
+      <div className="mt-2 text-gray-800">
+        {g.student_names.join(" , ")}
+      </div>
+
+      {/* 🔍 từng cặp */}
+      <div className="mt-2 text-xs text-gray-600">
+        {g.pairs?.map((p:any,idx:number)=>(
+          <div 
+            key={idx}
+            onClick={(e)=>{
+              e.stopPropagation()
+              setSelectedPair(p)
+              loadPairCode(p)
+            }}
+            className="cursor-pointer hover:text-red-600 transition"
+          >
+            🔍 {p.a} - {p.b}: {p.score}%
+          </div>
+        ))}
       </div>
 
     </div>
+  ))}
 
-    {/* 🔥 2 code */}
-    <div className="grid grid-cols-2 gap-4">
+  {/* ================= SO SÁNH ================= */}
+  {selectedGroup !== null && copyGroups[selectedGroup]?.pairs?.length > 0 && (
 
-      <pre className="bg-black text-green-400 p-3 rounded text-xs overflow-auto max-h-60">
-        {p.codeA || "👉 Click để load"}
-      </pre>
+    <div className="mt-6">
 
-      <pre className="bg-black text-green-400 p-3 rounded text-xs overflow-auto max-h-60">
-        {p.codeB || "👉 Click để load"}
-      </pre>
+      <h2 className="text-xl font-bold mb-4">
+        📄 So sánh code
+      </h2>
+
+      {copyGroups[selectedGroup].pairs.map((p:any,idx:number)=>(
+
+        <div 
+          key={idx}
+          onClick={()=>loadPairCode(p,idx)}
+          className="cursor-pointer mb-4"
+        >
+
+          <div className="flex justify-between mb-3 text-sm">
+
+            <div className="text-blue-400">
+              👤 {p.a}
+            </div>
+
+            <div className="text-red-400">
+              🔥 {p.score}%
+            </div>
+
+            <div className="text-blue-400">
+              👤 {p.b}
+            </div>
+
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+
+            <pre className="bg-black text-green-400 p-3 rounded text-xs overflow-auto max-h-60">
+              {p.codeA || "👉 Click để load"}
+            </pre>
+
+            <pre className="bg-black text-green-400 p-3 rounded text-xs overflow-auto max-h-60">
+              {p.codeB || "👉 Click để load"}
+            </pre>
+
+          </div>
+
+        </div>
+
+      ))}
 
     </div>
+  )}
 
-  </div>
-))}
 </div>
-)}
-</div>
+
 )}
 
 
