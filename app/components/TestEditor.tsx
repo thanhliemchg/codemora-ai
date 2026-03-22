@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import ImportTestExcel from "./ImportTestExcel"
+import ImportTestFiles from "./ImportTestFiles"
 
 export default function TestEditor({ tests, setTests, exercise }: any){
 
@@ -10,7 +11,9 @@ export default function TestEditor({ tests, setTests, exercise }: any){
   function addTest(){
     setTests([
       ...tests,
-      { input:"", output:"", hidden:false }
+      { input:"", 
+        output:"", 
+        hidden:false }
     ])
   }
 
@@ -58,72 +61,147 @@ async function generateTests(){
 }
 
   return(
+  <div className="bg-white rounded-xl shadow p-4 space-y-4">
 
-    <div className="bg-white p-6 rounded-xl shadow space-y-4">
+    {/* TITLE */}
+    <div className="font-semibold text-gray-700 text-sm">
+      📦 Test case
+    </div>
 
-      {/* HEADER */}
-      <div className="flex gap-2 flex-wrap">
+    {/* TOP GRID */}
+    <div className="grid grid-cols-3 gap-4">
 
-        <ImportTestExcel setTests={setTests} />
+      {/* IMPORT */}
+      <div className="col-span-2">
+        <ImportTestFiles tests={tests} setTests={setTests} />
+      </div>
 
-        <button
+      {/* ACTION */}
+      <div className="flex flex-col gap-3">
+
+        <button 
           onClick={addTest}
-          className="bg-green-600 text-white px-3 py-1 rounded"
+          className="bg-green-500 hover:bg-green-600 transition text-white py-2 rounded-lg shadow"
         >
           ➕ Thêm test
         </button>
 
-        <button
+        <button 
           onClick={generateTests}
-          className="bg-purple-600 text-white px-3 py-1 rounded"
+          className="bg-purple-500 hover:bg-purple-600 transition text-white py-2 rounded-lg shadow"
         >
-          {loading ? "Đang sinh..." : "🤖 Sinh test"}
+          {loading ? "⏳ Đang sinh..." : "🤖 Sinh test"}
         </button>
 
       </div>
+    </div>
 
-      {/* LIST */}
-      {tests.map((t:any,i:number)=>(
-        <div key={i} className="border p-3 rounded space-y-2">
-          <div className={t.hidden ? "text-red-500 text-xs" : "text-green-600 text-xs"}>
-              {t.hidden ? "🔒 Hidden" : "🌍 Public"}
-          </div>
-          <div className="flex justify-between">
-            <div>Test {i+1}</div>
-            <button
-              onClick={()=>removeTest(i)}
-              className="text-red-500"
-            >
-              Xoá
-            </button>
-          </div>
+    {/* STATS */}
+    <div className="flex gap-3 text-sm">
 
-          <textarea
-            value={t.input}
-            onChange={(e)=>updateTest(i,"input",e.target.value)}
-            placeholder="Input"
-            className="border p-2 w-full text-black"
-          />
+      <div className="bg-gray-100 px-3 py-1 rounded">
+        📦 {tests.length}
+      </div>
 
-          <textarea
-            value={t.output}
-            onChange={(e)=>updateTest(i,"output",e.target.value)}
-            placeholder="Output"
-            className="border p-2 w-full text-black"
-          />
+      <div className="bg-green-100 text-green-700 px-3 py-1 rounded">
+        🌍 {tests.filter((t:any)=>!t.hidden).length}
+      </div>
 
-          <label>
-            <input
-              type="checkbox"
-              checked={t.hidden}
-              onChange={(e)=>updateTest(i,"hidden",e.target.checked)}
-            />
-            Ẩn test case (học sinh sẽ không thấy)
-          </label>
-
-        </div>
-      ))}
+      <div className="bg-red-100 text-red-600 px-3 py-1 rounded">
+        🔒 {tests.filter((t:any)=>t.hidden).length}
+      </div>
 
     </div>
+
+    {/* LIST */}
+    <div className="space-y-3">
+{tests.map((t:any,i:number)=>{
+
+  const shortInput = t.input?.slice(0,50)
+  const shortOutput = t.output?.slice(0,50)
+
+  return(
+    <details key={i} className="border rounded-lg overflow-hidden group">
+
+      {/* HEADER */}
+      <summary className="flex justify-between items-center px-3 py-2 bg-gray-100 cursor-pointer hover:bg-gray-200">
+
+        <div className="flex gap-3 items-center">
+
+          <span className="font-semibold text-sm">
+            #{i+1}
+          </span>
+
+          <span className={`text-xs px-2 py-1 rounded ${
+            t.hidden ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
+          }`}>
+            {t.hidden ? "Hidden" : "Public"}
+          </span>
+
+          {/* PREVIEW MINI */}
+          <span className="text-xs text-gray-500 hidden md:block">
+            {shortInput?.replace(/\n/g," ")} → {shortOutput}
+          </span>
+
+        </div>
+
+        <button
+          onClick={(e)=>{
+            e.preventDefault()
+            removeTest(i)
+          }}
+          className="text-red-500 hover:underline text-sm"
+        >
+          🗑
+        </button>
+
+      </summary>
+
+      {/* BODY */}
+      <div className="p-3 bg-white space-y-3">
+
+        {/* TABLE PREVIEW */}
+        <div className="border rounded overflow-hidden text-sm">
+
+          <div className="grid grid-cols-2 bg-gray-100 font-medium">
+            <div className="p-2 border-r">Input</div>
+            <div className="p-2">Output</div>
+          </div>
+
+          <div className="grid grid-cols-2">
+            <textarea
+              value={t.input}
+              onChange={(e)=>updateTest(i,"input",e.target.value)}
+              className="p-2 border-r bg-gray-50 text-black font-mono text-xs"
+              rows={4}
+            />
+            <textarea
+              value={t.output}
+              onChange={(e)=>updateTest(i,"output",e.target.value)}
+              className="p-2 bg-gray-50 text-black font-mono text-xs"
+              rows={4}
+            />
+          </div>
+
+        </div>
+
+        {/* OPTION */}
+        <label className="text-sm flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={t.hidden}
+            onChange={(e)=>updateTest(i,"hidden",e.target.checked)}
+          />
+          🔒 Ẩn test (HS không thấy)
+        </label>
+
+      </div>
+
+    </details>
   )
+})}
+</div>
+
+  </div>
+)
 }

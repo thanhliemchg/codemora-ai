@@ -90,8 +90,7 @@ const totalPending = submissions.filter(s=>s.status==="pending").length
 const [editingStudent,setEditingStudent] = useState<any>(null)
 
 const [tests,setTests] = useState<any[]>([])
-
- console.log("TYPE:", submissions.map(s=>s.type))
+const [editContent, setEditContent] = useState("")
 
 useEffect(()=>{
 
@@ -1478,27 +1477,21 @@ Tổng học sinh trong lớp: {students.active.length}
 
 <div className="bg-white p-6 rounded-xl shadow-sm mb-6">
 
-<h1 className="text-xl font-semibold mb-4">
-Giao bài tập
+<h1 className="text-2xl text-red-600 font-semibold mb-4">
+GIAO BÀI TẬP
 </h1>
-
+<h2 className="text-1xl text-blue-600 font-semibold mb-4">
+Nội dung đề bài:
+</h2>
 <textarea
 placeholder="Nhập đề bài..."
 className="w-full h-[180px] border border-blue-600 p-4 text-black mb-4 rounded"
 value={exercise}
 onChange={(e)=>setExercise(e.target.value)}
 />
-<TestEditor 
-  tests={tests} 
-  setTests={setTests}
-  exercise={exercise}  
-/>
-
 {/* PREVIEW ĐỀ BÀI */}
-
-<div className="bg-white p-4 rounded mt-4">
-<div className="text-gray-700 mb-2">
-Preview đề bài
+<div className="text-gray-300 mb-2">
+Xem trước đề bài
 </div>
 
 {exercise.includes("<") ? (
@@ -1515,10 +1508,11 @@ dangerouslySetInnerHTML={{ __html: exercise }}
 </ReactMarkdown>
 
 )}
+<div className="bg-white p rounded mt-2">
 
-</div>
-
-
+<h2 className="text-1xl text-blue-600 font-semibold mb-4">
+Mô tả để AI sinh bài:
+</h2>
 <textarea
 placeholder="Mô tả để AI sinh bài..."
 className="w-full h-[120px] border border-blue-600 p-4 text-black mb-4 rounded"
@@ -1526,13 +1520,7 @@ value={aiPrompt}
 onChange={(e)=>setAiPrompt(e.target.value)}
 />
 
-<button
-onClick={generateAI}
-className="bg-purple-600 text-white px-3 py-1 rounded"
->
-Sinh bằng AI
-</button>
-
+<div className="gap-2 flex-wrap space-x-2 flex items-center">
 <input
 type="file"
 accept=".docx,.txt,.md"
@@ -1566,11 +1554,25 @@ setExercise(content)
 }}
 />
 <button
+onClick={generateAI}
+className="bg-purple-600 text-white px-3 py-1 rounded"
+>
+Sinh đề bằng AI
+</button>
+<button
 onClick={createExercise}
 className="bg-blue-600 text-white px-3 py-1 rounded"
 >
 Gửi bài
 </button>
+</div>
+</div>
+<TestEditor 
+  tests={tests} 
+  setTests={setTests}
+  exercise={exercise}  
+/>
+
 
 <table className="w-full mt-6 bg-white rounded-lg overflow-hidden">
 
@@ -1595,24 +1597,16 @@ Gửi bài
 
 <td className="px-3 py-2 text-gray-700">
 
-<details>
-
-<summary 
-className="cursor-pointer text-red-400"
-onClick={()=>setPreview(!preview)}
->
-Xem đề
-</summary>
-
-<div> 
-{preview && (
-<ReactMarkdown remarkPlugins={[remarkGfm]}>
-{e.exercise}
-</ReactMarkdown>
-)}
-</div>
-
-</details>
+  <span
+    className="text-red-500 cursor-pointer"
+    onClick={()=>{
+    setSelectedExercise(e)
+    setTests(Array.isArray(e.test_cases) ? e.test_cases : [])
+    setEditContent(e.exercise)
+    }}
+  >
+    ▶ Xem đề
+  </span>
 
 </td>
 
@@ -1642,6 +1636,90 @@ Xem đề
 </tbody>
 
 </table>
+{selectedExercise && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center">
+
+    {/* overlay */}
+    <div
+      className="absolute inset-0 bg-black/40"
+      onClick={()=>{
+        setSelectedExercise(null)
+        setTests([])
+      }}
+    />
+
+    {/* modal box */}
+    <div className="relative bg-white w-[900px] max-h-[90vh] overflow-auto rounded-xl shadow-lg p-6">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-4 border-b pb-2">
+
+        <h2 className="text-lg font-bold text-blue-600">
+          ✏️ Sửa đề và test
+        </h2>
+
+        <div className="flex gap-2">
+
+          <button
+            onClick={async ()=>{
+              await fetch("/api/update-exercise",{
+                method:"POST",
+                headers:{ "Content-Type":"application/json" },
+                body: JSON.stringify({
+                  id: selectedExercise.id,
+                  exercise: editContent,
+                  test_cases: tests
+                })
+              })
+
+              alert("✅ Đã lưu")
+
+              setSelectedExercise(null)
+              setTests([])
+            }}
+            className="bg-green-600 text-white px-3 py-1 rounded"
+          >
+            💾 Lưu
+          </button>
+
+          <button
+            onClick={()=>{
+              setSelectedExercise(null)
+              setTests([])
+            }}
+            className="bg-red-500 text-white px-3 py-1 rounded"
+          >
+            ❌ Đóng
+          </button>
+
+        </div>
+      </div>
+
+      {/* EDIT */}
+      <textarea
+        value={editContent}
+        onChange={(e)=>setEditContent(e.target.value)}
+        className="w-full border p-3 rounded mb-4"
+        rows={6}
+      />
+
+      {/* PREVIEW */}
+      <div className="bg-gray-50 p-3 rounded mb-4">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {editContent}
+        </ReactMarkdown>
+      </div>
+
+      {/* TEST EDITOR */}
+      <TestEditor
+        tests={tests}
+        setTests={setTests}
+        exercise={editContent}
+      />
+
+    </div>
+  </div>
+)}
 </div>
 
 )}
