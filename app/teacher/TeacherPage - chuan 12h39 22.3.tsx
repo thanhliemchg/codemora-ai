@@ -12,14 +12,13 @@ import Header from "../components/header"
 import ChangePassword from "../components/ChangePassword"
 import TestEditor from "../components/TestEditor"
 import { tr } from "framer-motion/client"
-import Student from "../student/16h00 20.3.2026"
 export default function Teacher(){
  const router = useRouter()
 const searchParams = useSearchParams()
 const classId = searchParams.get("class")
 const tab = searchParams.get("tab") || "classes"
 
-const [selectedStudents,setSelectedStudents] = useState<string[]>([])
+const [selectedStudents, setSelectedStudents] = useState<string[]>([])
 const [view,setView] = useState("all")
 const [selectedStudent,setSelectedStudent] = useState<string | null>(null)
 const [selectedSubmission,setSelectedSubmission] = useState<any>(null)
@@ -41,7 +40,6 @@ const [students,setStudents] = useState({
 pending:[],
 active:[]
 })
-
 const [submissions,setSubmissions] = useState<any[]>([])
 const [copyCases,setCopyCases] = useState([])
 
@@ -94,9 +92,6 @@ const [editingStudent,setEditingStudent] = useState<any>(null)
 const [tests,setTests] = useState<any[]>([])
 const [editContent, setEditContent] = useState("")
 
-const [sendAll,setSendAll] = useState(false)
-const [search,setSearch] = useState("")
-
 useEffect(()=>{
 
 const user = JSON.parse(localStorage.getItem("user") || "{}")
@@ -125,7 +120,7 @@ if(classId){
 
 setSelectedClass(classId)
 
-if(tab==="students" || tab==="exercise"){
+if(tab==="students"){
 loadStudents(classId,"")
 }
 
@@ -412,8 +407,8 @@ const activeRes = await fetch(`/api/class-students?class_id=${class_id}`)
 const active = await activeRes.json()
 
 setStudents({
-pending: pending.data || pending || [],
-active: active.data || active || []
+pending,
+active
 })
 
 }
@@ -850,8 +845,7 @@ form.append("exercise",exercise)
 form.append("class_id",selectedClass)
 form.append("teacher_id",user.id)
 form.append("tests", JSON.stringify(tests)) 
-form.append("send_all", "0")
-form.append("student_ids", JSON.stringify(selectedStudents))
+
 if(file){
 form.append("file",file)
 }
@@ -946,15 +940,6 @@ loadStudents(selectedClass,selectedClassName)
 
 const totalStudents = students.pending.length + students.active.length
 const totalSubmissions = submissions.length
-
-const allStudents = (() => {
-  const map = new Map()
-
-  ;[...(students.pending||[]), ...(students.active||[])]
-  .forEach(s => map.set(s.id, s))
-
-  return Array.from(map.values())
-})()
 
 return(
 <div className="bg-gray-100 min-h-screen text-gray-800">
@@ -1504,117 +1489,6 @@ className="w-full h-[180px] border border-blue-600 p-4 text-black mb-4 rounded"
 value={exercise}
 onChange={(e)=>setExercise(e.target.value)}
 />
-<div className="bg-white p-1 rounded-xl shadow space-y-3">
-
-  <div className="font-semibold text-gray-700">
-    👥 Gửi bài cho
-  </div>
-  <div className="border rounded-xl shadow-sm mt-3">
-
-  {/* HEADER */}
-  <div className="flex justify-between items-center p-1 border-b bg-gray-50">
-
-    <div className="font-semibold text-gray-700">
-      👨‍🎓 Chọn học sinh ({allStudents.length})
-    </div>
-
-    <div className="flex gap-2">
-
-      <button
-        onClick={()=>setSelectedStudents(allStudents.map(s=>s.id))}
-        className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded"
-      >
-        Chọn tất cả
-      </button>
-
-      <button
-        onClick={()=>setSelectedStudents([])}
-        className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded"
-      >
-        Bỏ chọn
-      </button>
-
-    </div>
-
-  </div>
-
-  {/* SEARCH */}
-  <div className="p-3 border-b">
-    <input
-      value={search}
-      onChange={(e)=>setSearch(e.target.value)}
-      placeholder="🔍 Tìm tên hoặc email..."
-      className="w-full border rounded px-1 py-2 text-sm"
-    />
-  </div>
-
-  {/* TABLE */}
-  <div className="max-h-40 overflow-auto">
-
-    <table className="w-full text-sm">
-
-      <thead className="bg-gray-100 sticky top-0">
-        <tr>
-          <th className="p-2 w-10"></th>
-          <th className="p-2 text-left">Tên</th>
-          <th className="p-2 text-left">Email</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {allStudents
-          .filter((s:any)=>
-            (s.name||"").toLowerCase().includes(search.toLowerCase()) ||
-            (s.email||"").toLowerCase().includes(search.toLowerCase())
-          )
-          .map((s:any)=>{
-
-            const checked = selectedStudents.includes(s.id)
-
-            return(
-              <tr 
-                key={s.id}
-                className={`border-t hover:bg-gray-50 ${
-                  checked ? "bg-blue-50" : ""
-                }`}
-              >
-
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(e)=>{
-                      if(e.target.checked){
-                        setSelectedStudents([...selectedStudents, s.id])
-                      }else{
-                        setSelectedStudents(
-                          selectedStudents.filter(id=>id!==s.id)
-                        )
-                      }
-                    }}
-                  />
-                </td>
-
-                <td className="p-2 font-medium">
-                  {s.name || "Chưa có tên"}
-                </td>
-
-                <td className="p-2 text-gray-500">
-                  {s.email}
-                </td>
-
-              </tr>
-            )
-        })}
-      </tbody>
-
-    </table>
-
-  </div>
-
-</div>
-
-</div>
 {/* PREVIEW ĐỀ BÀI */}
 <div className="text-gray-300 mb-2">
 Xem trước đề bài

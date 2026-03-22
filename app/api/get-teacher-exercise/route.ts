@@ -2,67 +2,78 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET(req:Request){
+export async function GET(req: Request){
 
-const { searchParams } = new URL(req.url)
-const student_id = searchParams.get("student_id")
+  const { searchParams } = new URL(req.url)
+  const student_id = searchParams.get("student_id")
 
-if(!student_id){
-return NextResponse.json([])
-}
+  if(!student_id){
+    return NextResponse.json([])
+  }
 
-/* LẤY CLASS */
+  // 🔥 lấy submissions của học sinh
+  const { data: subs, error } = await supabase
+    .from("submissions")
+    .select("exercise_id, status")
+    .eq("student_id", student_id)
+    .eq("type","teacher")
 
-const { data:user } = await supabase
-.from("users")
-.select("class_id")
-.eq("id",student_id)
-.maybeSingle()
+  if(error){
+    return NextResponse.json({ error:error.message })
+  }
 
-if(!user){
-return NextResponse.json([])
-}
+  if(!subs || subs.length === 0){
+    return NextResponse.json([])
+  }
 
-const class_id = user.class_id
+  // 🔥 lấy id bài
+  const ids = subs.map(s => s.exercise_id)
 
+  // 🔥 lấy bài tương ứng
+  const { data: exercises, error: exError } = await supabase
+    .from("generated_exercises")
+    .select("*")
+    .in("id", ids)
 
-/* 🔥 LẤY TẤT CẢ BÀI GV GIAO */
+  if(exError){
+    return NextResponse.json({ error:exError.message })
+  }
 
-const { data:exercises } = await supabase
-.from("generated_exercises")
-.select("*")
-.eq("class_id",class_id)
-.order("created_at",{ascending:false})
+  // 🔥 merge + chống lặp
+  const map = new Map()
 
-if(!exercises){
-return NextResponse.json([])
-}
+  exercises?.forEach((ex:any)=>{
+    const sub = subs.find(s => s.exercise_id === ex.id)
 
+    if(!map.has(ex.id)){
+      map.set(ex.id,{
+        ...ex,
+        status: sub?.status || "pending",
+        submitted: ["submitted","graded"].includes(sub?.status)
+      })
+    }
+  })
 
-/* 🔥 LẤY DANH SÁCH ĐÃ NỘP */
+  let result = Array.from(map.values())
 
-const { data:submitted } = await supabase
-.from("submissions")
-.select("exercise_id")
-.eq("student_id",student_id)
-.eq("type","teacher")
-.in("status",["submitted", "graded"])
+  // 🔥 sort: mới nhất lên trên
+  result.sort((a:any,b:any)=>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
 
-const submittedIds = submitted?.map(s=>s.exercise_id) || []
+  // 🔥 đánh số (số lớn = mới)
+  result.forEach((item:any,i:number)=>{
+    item.order = result.length - i
+  })
 
+  // 🔥 mark bài mới
+  if(result.length > 0){
+    result[0].is_new = true
+  }
 
-/* 🔥 GẮN TRẠNG THÁI */
-
-const result = exercises.map(ex => ({
-...ex,
-submitted: submittedIds.includes(ex.id)
-}))
-
-
-return NextResponse.json(result)
-
+  return NextResponse.json(result)
 }

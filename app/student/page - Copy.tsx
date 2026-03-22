@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import ChangePassword from "../components/ChangePassword"
 import { setTooltipSettingsState } from "recharts/types/state/tooltipSlice"
-import { s, sub } from "framer-motion/client"
+import { sub } from "framer-motion/client"
 
 export default function Student(){
 const [teacherExercise,setTeacherExercise] = useState("")
@@ -47,9 +47,7 @@ const passed = testResult.filter(t => t.passed).length
 const percent = total > 0 
   ? Math.round((passed / total) * 100)
   : 0
-const current = Array.isArray(teacherExercises)
-  ? teacherExercises.find(e => e.id === teacherExerciseId)
-  : null
+const current = teacherExercises.find(e=>e.id===teacherExerciseId)
 const currentTeacherExercise = teacherExercises.find(
   e => e.id === teacherExerciseId
 )
@@ -228,12 +226,12 @@ const user = JSON.parse(u)
 
 const res = await fetch(`/api/get-teacher-exercise?student_id=${user.id}`)
 const data = await res.json()
-if (Array.isArray(data)) {
-  setTeacherExercises(data)
-} else {
-  setTeacherExercises([])
+setTeacherExercises(data)
+
 }
-}
+
+
+
 /* ======================
 UPLOAD FILE CODE
 ====================== */
@@ -541,10 +539,10 @@ className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
 {/* ================= DASHBOARD ================= */}
 
 
-
 {tab==="dashboard" && (
 
 <div className="grid grid-cols-2 gap-6">
+
 <div className="bg-white p-6 rounded-xl shadow">
 
 <label className="bg-red-600 text-white px-4 py-2 rounded ml-3">
@@ -634,132 +632,138 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
     : "📤 Nộp bài"}
 </button>
 
+
+
 </div>
 
 </div>
-{/* ===== CỘT PHẢI (DÁN ĐOẠN CỦA BẠN VÀO ĐÂY) ===== */}
+
+
+
 <div className="space-y-6 text-black">
 
-  {/* ===== BÀI GV ===== */}
-  <div className="bg-white p-6 rounded-xl shadow">
+<div className="bg-white p-6 rounded-xl shadow">
 
-    <div id="teacher-list" className="bg-yellow-100 border border-yellow-300 p-4 rounded-xl">
+<div id="teacher-list" className="bg-yellow-100 border border-yellow-300 p-4 rounded-xl">
 
-      <h2 className="font-bold text-lg mb-3">
-        📌 Bài giáo viên giao
-      </h2>
+<h2 className="font-bold text-lg mb-3">
+📌 Bài giáo viên giao
+</h2>
 
-      <div className="space-y-3 max-h-[300px] overflow-y-auto">
+<div className="space-y-3 max-h-[300px] overflow-y-auto">
 
-        {teacherExercises.map((ex:any)=>{
+{teacherExercises.map((ex:any,index:number)=>{
 
-          const shortTitle = ex.exercise
-            ?.replace(/[#*]/g,"")
-            ?.split("\n")[0]
-            ?.slice(0,60)
+const shortTitle = ex.exercise
+  ?.replace(/[#*]/g,"")
+  ?.split("\n")[0]
+  ?.slice(0,60)
 
-          return(
+return(
 
-            <div
-              key={ex.id}
-              onClick={()=>{
-                setTeacherExercise(ex.exercise)
-                setTeacherExerciseId(ex.id)
-                setSubmitType("teacher")
-                setSubmitted(false)
-              }}
-              className={`
-              p-4 rounded-xl border cursor-pointer transition
-              ${teacherExerciseId===ex.id
-                ? "bg-indigo-50 border-indigo-400"
-                : "bg-white hover:bg-gray-50"}
-              `}
-            >
+<div
+key={ex.id}
+onClick={()=>{
+  setTeacherExercise(ex.exercise)
+  setTeacherExerciseId(ex.id)
+  setSubmitType("teacher")
+  setSubmitted(false)
+}}
+className={`
+p-4 rounded-xl border cursor-pointer transition
+${teacherExerciseId===ex.id
+  ? "bg-indigo-50 border-indigo-400"
+  : "bg-white hover:bg-gray-50"}
+`}
+>
 
-              <div className="flex justify-between items-center mb-1">
+{/* HEADER */}
+<div className="flex justify-between items-center mb-1">
 
-                <div className="font-semibold">
-                  📘 Bài {ex.order}
-                  {ex.is_new && (
-                    <span className="ml-2 text-xs bg-yellow-300 px-2 py-1 rounded">
-                     🔥Mới
-                    </span>
-                  )}
-                </div>
+<div className="font-semibold text-gray-800">
+📄 Bài {index+1}
+</div>
 
-                <div className={`text-xs px-2 py-1 rounded ${
-                  ex.submitted
-                    ? "bg-green-100 text-green-600"
-                    : "bg-red-100 text-red-600"
-                }`}>
-                  {ex.submitted ? "📤 Đã nộp" : "⏳Chưa làm"}
-                </div>
-
-              </div>
-
-              <div className="text-sm text-gray-600 line-clamp-2">
-                {shortTitle || "Bài tập lập trình"}
-              </div>
-
-            </div>
-
-          )
-        })}
-
-      </div>
-
-      {/* PREVIEW */}
-      <div className="mt-4 bg-white p-4 rounded-xl border">
-
-        <div className="font-semibold mb-2">
-          📘 Nội dung bài
-        </div>
-
-        {teacherExercise ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {teacherExercise}
-          </ReactMarkdown>
-        ) : (
-          <div className="text-gray-400 text-sm">
-            Chọn bài để xem nội dung
-          </div>
-        )}
-
-      </div>
-
-    </div>
-
-  </div>
-
-  {/* ===== BÀI TỰ SINH ===== */}
-  <div className="bg-white p-6 rounded-xl shadow">
-
-    <h2 className="font-bold mb-3 text-black">
-      Bài tập tự sinh
-    </h2>
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-      {exercise}
-    </ReactMarkdown>
-
-  </div>
-
-  {/* ===== AI FEEDBACK ===== */}
-  <div className="bg-white p-6 rounded-xl shadow">
-
-    <h2 className="font-bold mb-3 text-black">
-      AI Feedback
-    </h2>
-
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-      {result}
-    </ReactMarkdown>
-
-  </div>
-
+<div
+className={`
+text-xs px-2 py-1 rounded
+${ex.submitted
+  ? "bg-green-100 text-green-700"
+  : "bg-red-100 text-red-600"}
+`}
+>
+{ex.submitted ? "Đã nộp" : "Chưa nộp"}
 </div>
 
 </div>
+
+{/* TITLE */}
+<div className="text-sm text-gray-600 line-clamp-2">
+{shortTitle || "Bài tập lập trình"}
+</div>
+
+</div>
+
+)
+})}
+
+</div>
+
+{/* PREVIEW */}
+<div className="mt-4 bg-white p-4 rounded-xl border">
+<div className="font-semibold mb-2">
+📘 Nội dung bài
+</div>
+{teacherExercise ? (
+  <div>
+   <ReactMarkdown remarkPlugins={[remarkGfm]}>
+    {teacherExercise}
+    </ReactMarkdown>
+  </div>
+) : (
+  <div className="text-black-400 text-sm">
+    Chọn bài để xem nội dung
+  </div>
 )}
+
+</div>
+
+</div>
+
+</div>
+
+<div className="bg-white p-6 rounded-xl shadow">
+
+<h2 className="font-bold mb-3 text-black">
+Bài tập tự sinh
+</h2>
+
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+{exercise}
+</ReactMarkdown>
+
+</div>
+
+<div className="bg-white p-6 rounded-xl shadow">
+
+<h2 className="font-bold mb-3 text-black">
+AI Feedback
+</h2>
+
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+{result}
+</ReactMarkdown>
+
+</div>
+
+</div>
+
+</div>
+
+)}
+
+
+
 {/* ================= HISTORY ================= */}
 
 {tab==="history" && (
@@ -777,15 +781,15 @@ Tổng bài: {history.length}
 </div>
 
 <div className="bg-green-100 px-3 py-2 rounded">
-  ✅ Đã chấm: {history.filter(h => h.status === "graded").length}
+  Đã chấm: {history.filter(h => h.status === "graded").length}
 </div>
 
 <div className="bg-yellow-100 px-3 py-2 rounded">
-  📤 Đã nộp (chờ chấm): {history.filter(h => h.status === "submitted").length}
+  Đã nộp (chờ chấm): {history.filter(h => h.status === "submitted").length}
 </div>
 
 <div className="bg-red-100 px-3 py-2 rounded">
-  ⏳ Chưa làm: {history.filter(h => h.status === "pending").length}
+  Chưa nộp: {history.filter(h => h.status === "pending").length}
 </div>
 
 </div>
@@ -827,9 +831,9 @@ onClick={()=>setSelectedHistory(h)}
 
 <td className="border p-2 text-center">
   {{
-    pending: "⏳ Chưa làm",
-    submitted: "📤 Đã nộp",
-    graded: "✅ Đã chấm"
+    pending: "Chưa nộp",
+    submitted: "Đã nộp",
+    graded: "Đã chấm"
   }[h.status || "pending"]}
 </td>
 
@@ -1098,4 +1102,6 @@ Bài tập tự sinh bằng AI
 
 </div>
 
-)}
+)
+
+}

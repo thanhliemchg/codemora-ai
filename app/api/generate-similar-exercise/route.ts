@@ -82,7 +82,7 @@ ${base}
     ====================== */
 
     const promptTest = `
-Tạo đúng 10 test case cho bài sau:
+Tạo đúng 10 test case chính xác tuyệt đối cho bài sau:
 
 ${exercise}
 
