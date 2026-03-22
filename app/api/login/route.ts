@@ -3,43 +3,78 @@ import bcrypt from "bcryptjs"
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
 export async function POST(req: NextRequest) {
 
-const body = await req.json()
-const email = body.email
-const password = body.password
+  try {
 
-const { data: user, error } = await supabase
-.from("users")
-.select("*")
-.eq("email", email)
-.single()
+    const body = await req.json()
+    const email = body.email
+    const password = body.password
 
-if(error || !user){
-return NextResponse.json({
-error: "Email không tồn tại"
-})
-}
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single()
+// 🔥 CHẶN TÀI KHOẢN CHƯA KÍCH HOẠT
+    if (user.status === "pending") {
+      return NextResponse.json({
+        error: "⏳ Tài khoản đang chờ kích hoạt"
+      }, { status: 403 })
+    }
 
-const valid = await bcrypt.compare(password, user.password)
+    // 🔥 CHẶN TÀI KHOẢN BỊ KHÓA
+    if (user.status === "blocked") {
+      return NextResponse.json({
+        error: "🚫 Tài khoản đã bị khóa"
+      }, { status: 403 })
+    }
+    // ❌ EMAIL KHÔNG TỒN TẠI
+    if (error || !user) {
+      return NextResponse.json({
+        error: "Email không tồn tại"
+      })
+    }
 
-if(!valid){
-return NextResponse.json({
-error: "Sai mật khẩu"
-})
-}
+    // ❌ SAI MẬT KHẨU
+    const valid = await bcrypt.compare(password, user.password)
 
-return NextResponse.json({
-success: true,
-user:{
-id: user.id,
-name: user.name,
-role: user.role
-}
-})
+    if (!valid) {
+      return NextResponse.json({
+        error: "Sai mật khẩu"
+      })
+    }
 
+    
+
+    // ❌ TRẠNG THÁI KHÁC (PHÒNG HỜ)
+    if (user.status !== "active") {
+      return NextResponse.json({
+        error: "Tài khoản không hợp lệ"
+      }, { status: 403 })
+    }
+
+    // ✅ LOGIN OK
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role
+      }
+    })
+
+  } catch (err) {
+
+    console.log(err)
+
+    return NextResponse.json({
+      error: "Lỗi server"
+    }, { status: 500 })
+
+  }
 }
