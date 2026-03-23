@@ -6,33 +6,74 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-/* ================= SIMILARITY ================= */
-function similarity(a:string,b:string){
+/* ================= DETECT LANGUAGE ================= */
+function detectLanguage(code: string) {
+  if (!code) return "unknown"
 
-  const clean = (s:string)=>
-    s.replace(/\s/g,"").toLowerCase()
-
-  const s1 = clean(a)
-  const s2 = clean(b)
-
-  let dp = Array(s1.length+1).fill(0).map(()=>Array(s2.length+1).fill(0))
-
-  for(let i=1;i<=s1.length;i++){
-    for(let j=1;j<=s2.length;j++){
-      if(s1[i-1]===s2[j-1]){
-        dp[i][j] = dp[i-1][j-1] + 1
-      }else{
-        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1])
-      }
-    }
+  // C++
+  if (
+    /#include/.test(code) ||
+    /int\s+main\s*\(/.test(code) ||
+    /\bcin\s*>>/.test(code) ||
+    /\bcout\s*<</.test(code)
+  ) {
+    return "cpp"
   }
 
-  const lcs = dp[s1.length][s2.length]
+  // Python
+  if (
+    /\bdef\s+\w+\(/.test(code) ||
+    /\bprint\s*\(/.test(code) ||
+    /\binput\s*\(/.test(code)
+  ) {
+    return "python"
+  }
 
-  return lcs / Math.max(s1.length, s2.length)
+  return "unknown"
 }
-/* ================= DSU ================= */
 
+/* ================= NORMALIZE ================= */
+function normalize(code: string) {
+  return code
+    .replace(/#include\s*[<"].*[>"]/g, "")
+    .replace(/using namespace std;/g, "")
+    .replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "")
+    .replace(/\b(int|long|double|float|string|bool|char)\b/g, "TYPE")
+    .replace(/\b\d+\b/g, "NUM")
+    .replace(/[{}();,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/* ================= TOKENIZE ================= */
+function tokenize(code: string) {
+  return normalize(code).split(" ").filter(Boolean)
+}
+
+/* ================= SHINGLES ================= */
+function shingles(tokens: string[], k = 5) {
+  const result: string[] = []
+  for (let i = 0; i <= tokens.length - k; i++) {
+    result.push(tokens.slice(i, i + k).join(" "))
+  }
+  return result
+}
+
+/* ================= SIMILARITY ================= */
+function similarity(a: string, b: string) {
+  const t1 = shingles(tokenize(a))
+  const t2 = shingles(tokenize(b))
+
+  const set1 = new Set(t1)
+  const set2 = new Set(t2)
+
+  const intersection = [...set1].filter(x => set2.has(x)).length
+  const union = new Set([...set1, ...set2]).size
+
+  return union === 0 ? 0 : intersection / union
+}
+
+/* ================= DSU ================= */
 class DSU {
   parent: number[]
 
@@ -57,32 +98,29 @@ class DSU {
 }
 
 /* ================= API ================= */
-
 export async function GET(req: Request) {
   try {
-
     const { searchParams } = new URL(req.url)
     const class_id = searchParams.get("class_id")
     const exercise_id = searchParams.get("exercise_id")
+
     if (!class_id || !exercise_id) {
       return NextResponse.json([])
     }
 
     /* ===== submissions ===== */
-
     const { data: subs } = await supabase
       .from("submissions")
-      .select("student_id, code, exercise_id")
+      .select("student_id, code")
       .eq("class_id", class_id)
       .eq("exercise_id", exercise_id)
-      .eq("status","submitted")
+      .eq("status", "submitted")
 
     if (!subs || subs.length === 0) {
       return NextResponse.json([])
     }
 
     /* ===== users ===== */
-
     const { data: users } = await supabase
       .from("users")
       .select("id, name")
@@ -93,28 +131,34 @@ export async function GET(req: Request) {
     })
 
     /* ===== DSU ===== */
-
     const dsu = new DSU(subs.length)
 
     for (let i = 0; i < subs.length; i++) {
       for (let j = i + 1; j < subs.length; j++) {
 
-        if (!subs[i].code || !subs[j].code) continue
+        const codeA = subs[i].code
+        const codeB = subs[j].code
 
-        const score = similarity(subs[i].code, subs[j].code)
+        if (!codeA || !codeB) continue
 
-        if (score > 0.85) {
+        const langA = detectLanguage(codeA)
+        const langB = detectLanguage(codeB)
+
+        // ❌ KHÁC NGÔN NGỮ => BỎ
+        if (langA !== langB) continue
+
+        const score = similarity(codeA, codeB)
+
+        if (score > 0.75) {
           dsu.union(i, j)
         }
       }
     }
 
     /* ===== GROUP ===== */
-
     const groups: any = {}
 
     for (let i = 0; i < subs.length; i++) {
-
       const root = dsu.find(i)
 
       if (!groups[root]) {
@@ -128,13 +172,10 @@ export async function GET(req: Request) {
     }
 
     /* ===== FORMAT ===== */
-
     const result: any[] = []
 
     Object.values(groups).forEach((g: any) => {
-
       if (g.length > 1) {
-
         result.push({
           student_ids: g.map((s: any) => s.id),
           student_names: g.map((s: any) => s.name),
@@ -142,29 +183,36 @@ export async function GET(req: Request) {
           similarity: 0,
           pairs: []
         })
-
       }
-
     })
 
     /* ===== TÍNH SIMILARITY + PAIRS ===== */
-
     for (let group of result) {
 
       let total = 0
       let count = 0
       let pairs: any[] = []
+
       for (let i = 0; i < subs.length; i++) {
         for (let j = i + 1; j < subs.length; j++) {
 
-          if (!subs[i].code || !subs[j].code) continue
+          const codeA = subs[i].code
+          const codeB = subs[j].code
+
+          if (!codeA || !codeB) continue
+
+          const langA = detectLanguage(codeA)
+          const langB = detectLanguage(codeB)
+
+          // ❌ KHÁC NGÔN NGỮ => KHÔNG TÍNH
+          if (langA !== langB) continue
 
           if (
             group.student_ids.includes(subs[i].student_id) &&
             group.student_ids.includes(subs[j].student_id)
           ) {
 
-            const s = similarity(subs[i].code, subs[j].code)
+            const s = similarity(codeA, codeB)
 
             total += s
             count++
@@ -187,14 +235,12 @@ export async function GET(req: Request) {
     }
 
     /* ===== SAVE DB ===== */
-
     await supabase
       .from("copy_groups")
       .delete()
       .eq("class_id", class_id)
 
     if (result.length > 0) {
-
       const rows = result.map(r => ({
         class_id,
         student_ids: r.student_ids,
@@ -202,14 +248,12 @@ export async function GET(req: Request) {
         size: r.size,
         similarity: r.similarity
       }))
-
       await supabase.from("copy_groups").insert(rows)
     }
 
     return NextResponse.json(result)
 
   } catch (err: any) {
-
     console.error("❌ DETECT COPY ERROR:", err)
 
     return NextResponse.json({

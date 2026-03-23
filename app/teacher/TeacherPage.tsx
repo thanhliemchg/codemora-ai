@@ -11,25 +11,41 @@ import TurndownService from "turndown"
 import Header from "../components/header"
 import ChangePassword from "../components/ChangePassword"
 import TestEditor from "../components/TestEditor"
-import { tr } from "framer-motion/client"
+import { b, tr } from "framer-motion/client"
 import Student from "../student/16h00 20.3.2026"
-
-import { Pie } from "react-chartjs-2"
 
 import {
   Chart as ChartJS,
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement
 } from "chart.js"
+
+import { Pie, Line } from "react-chartjs-2"
+
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement
+)
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 export default function Teacher(){
+
+
 const router = useRouter()
 const searchParams = useSearchParams()
 const classId = searchParams.get("class")
 const tab = searchParams.get("tab") || "classes"
-
+const [action, setAction] = useState("");
 const [selectedStudents,setSelectedStudents] = useState<string[]>([])
 const [view,setView] = useState("all")
 const [selectedStudent,setSelectedStudent] = useState<string | null>(null)
@@ -69,6 +85,7 @@ const [fileName,setFileName] = useState("Chưa có tệp được chọn")
 const [selectedClass,setSelectedClass] = useState(classId || null)
 const [selectedClassName,setSelectedClassName] = useState("")
 const [loading,setLoading] = useState(false)
+const [loadingtest,setLoadingtest] = useState(false)
 
 const [user,setUser] = useState<any>(null)
 const [teacherId,setTeacherId] = useState("")
@@ -146,7 +163,7 @@ if(classId){
 
 setSelectedClass(classId)
 
-if(tab==="students" || tab==="exercise"){
+if(tab==="students" ){
 loadStudents(classId,"")
 }
 
@@ -156,6 +173,8 @@ loadTeacherExercises(classId)
 }
 
 if(tab==="exercise"){
+
+loadStudents(classId,"")
 loadExercises(classId,"")
 }
 
@@ -311,26 +330,45 @@ async function loadStats(){
   }
 }
 
-async function loadPairCode(p:any, idx:number){
+async function loadPairCode(p: any) {
 
-  const res = await fetch("/api/get-pair-code",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
+  const res = await fetch("/api/get-pair-code", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
     },
     body: JSON.stringify({
       a_id: p.a_id,
-      b_id: p.b_id
+      b_id: p.b_id,
+      exercise_id: selectedExercise?.id
     })
   })
 
   const data = await res.json()
 
-  // 🔥 gán code vào đúng pair
+  if (!data || data.length < 2) return
+
+  const a = data.find((x: any) => x.id === p.a_id)
+  const b = data.find((x: any) => x.id === p.b_id)
+
+  if (!a || !b) return
+
   const newGroups = [...copyGroups]
 
-  newGroups[selectedGroup].pairs[idx].codeA = data[0].code
-  newGroups[selectedGroup].pairs[idx].codeB = data[1].code
+  // 🔥 FIX crash 100%
+  if (!newGroups || newGroups.length === 0) return
+  if (selectedGroup === undefined || selectedGroup === null) return
+  if (!newGroups[selectedGroup]) return
+  if (!newGroups[selectedGroup].pairs) return
+
+  const pair = newGroups[selectedGroup].pairs.find(
+    (x: any) => x.a_id === p.a_id && x.b_id === p.b_id
+  )
+
+  if (!pair) return
+
+  pair.codeA = a.code || ""
+  pair.codeB = b.code || ""
 
   setCopyGroups(newGroups)
 }
@@ -924,32 +962,40 @@ alert("Lỗi giao bài")
 }
 
 }
-async function generateAI(){
+async function generateAI() {
+  try {
+    setLoading(true); // 👈 BẮT ĐẦU
 
-const res = await fetch("/api/generate-exercise",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-prompt:aiPrompt
-})
-})
+    const res = await fetch("/api/generate-exercise", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: aiPrompt
+      })
+    });
 
-if(!res.ok){
-alert("AI sinh bài lỗi")
-return
+    if (!res.ok) {
+      alert("AI sinh bài lỗi");
+      return;
+    }
+
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (data.exercise) {
+      setExercise(data.exercise);
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Lỗi gọi API");
+  } finally {
+    setLoading(false); // 👈 KẾT THÚC
+  }
 }
 
-const text = await res.text()
-
-const data = text ? JSON.parse(text) : {}
-
-if(data.exercise){
-setExercise(data.exercise)
-}
-
-}
 function requireClass(action:any){
 
 if(!selectedClass){
@@ -1264,17 +1310,32 @@ setSelectedClassName(c.name)
 <td>
 
 <button
-onClick={()=>loadStudents(c.id,c.name)}
-className="bg-blue-600 px-3 py-1 text-white rounded"
+  onClick={(e)=>{
+    e.stopPropagation()
+    loadStudents(c.id, c.name)
+  }}
+  className="bg-blue-600 px-3 py-1 text-white rounded"
 >
-Học sinh
+  Học sinh
 </button>
 
 <button
-onClick={()=>loadSubmissions(c.id,c.name)}
-className="bg-green-600 px-3 py-1 text-white rounded"
+  onClick={(e)=>{
+    e.stopPropagation()
+
+    // set class
+    setSelectedClass(c.id)
+    setSelectedClassName(c.name)
+
+    // 👉 chuyển tab
+    changeTab("submissions")
+
+    // 👉 load luôn
+    loadSubmissions(c.id)
+  }}
+  className="bg-green-600 px-3 py-1 text-white rounded"
 >
-Bài nộp
+  Bài nộp
 </button>
 
 <button
@@ -1368,7 +1429,7 @@ onClick={handleUpload}
 disabled={loading}
 className="bg-blue-600 text-white px-3 py-1 rounded ml-2 disabled:opacity-50"
 >
-{loading ? "Đang tạo tài khoản..." : "Tải lên"}
+{loading ? "⏳Đang tạo tài khoản..." : "Tải lên"}
 </button>
 
 <a
@@ -1543,7 +1604,9 @@ Tổng học sinh trong lớp: {students.active.length}
 <h1 className="text-2xl text-red-600 font-semibold mb-4">
 GIAO BÀI TẬP
 </h1>
-<h2 className="text-1xl text-blue-600 font-semibold mb-4">
+
+<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+  <h2 className="text-1xl text-blue-600 font-semibold mb-4">
 Nội dung đề bài:
 </h2>
 <textarea
@@ -1552,6 +1615,118 @@ className="w-full h-[180px] border border-blue-600 p-4 text-black mb-4 rounded"
 value={exercise}
 onChange={(e)=>setExercise(e.target.value)}
 />
+<input
+type="file"
+accept=".docx,.txt,.md"
+onChange={async (e)=>{
+
+const file = e.target.files?.[0]
+if(!file) return
+
+const ext = file.name.split(".").pop()?.toLowerCase()
+
+let content=""
+
+if(ext==="docx"){
+
+const arrayBuffer = await file.arrayBuffer()
+
+const result = await mammoth.convertToHtml({arrayBuffer})
+
+content = result.value   // giữ nguyên HTML
+
+}
+
+else if(ext==="txt" || ext==="md"){
+
+content = await file.text()
+
+}
+
+setExercise(content)
+
+}}
+/>
+{/* PREVIEW ĐỀ BÀI */}
+<div className="text-gray-300 mb-2">
+Xem trước đề bài
+</div>
+
+{exercise.includes("<") ? (
+
+<div
+className="prose prose-invert max-w-none"
+dangerouslySetInnerHTML={{ __html: exercise }}
+/>
+
+) : (
+
+<ReactMarkdown remarkPlugins={[remarkGfm]}>
+{exercise}
+</ReactMarkdown>
+
+)}
+ <div>
+    <textarea
+      placeholder="Nhập mô tả để sinh bài..."
+      className="w-full h-[120px] border border-blue-600 p-4 text-black mb-4 rounded"
+      value={aiPrompt}
+      onChange={(e) => setAiPrompt(e.target.value)}
+    />
+  </div>
+</div>
+
+<div className="bg-white p rounded mt-2">
+
+
+<div className="space-y-4">
+
+  {/* AI INPUT */}
+ 
+<div className="flex gap-4 items-start">
+
+  {/* LEFT: TEST EDITOR */}
+  <div className="flex-1">
+    <TestEditor
+      tests={tests}
+      setTests={setTests}
+      exercise={exercise}
+      action={action}
+      setLoadingtest={setLoadingtest}
+    />
+  </div>
+
+  {/* RIGHT: BUTTON */}
+  <div className="flex flex-col gap-2 w-44">
+
+    <button
+      onClick={generateAI}
+      className="bg-red-600 text-white px-4 py-2 rounded-lg"
+    >
+      {loading ? "⏳ Đang sinh đề..." : "🤖 Sinh đề AI"}
+    </button>
+
+    <button
+      onClick={() => setAction({ type: "add", time: Date.now() })}
+      className="bg-green-500 text-white px-4 py-2 rounded-lg"
+    >
+      + Thêm test
+    </button>
+
+    <button
+      onClick={() => setAction({ type: "generate", time: Date.now() })}
+      disabled={loadingtest}
+      className="bg-purple-500 text-white px-4 py-2 rounded-lg"
+    >
+      {loadingtest ? "⏳ Đang sinh test..." : "⚙️ Sinh test"}
+    </button>
+
+  </div>
+
+</div>
+
+</div>
+
 <div className="bg-white p-1 rounded-xl shadow space-y-3">
 
   <div className="font-semibold text-gray-700">
@@ -1663,89 +1838,16 @@ onChange={(e)=>setExercise(e.target.value)}
 </div>
 
 </div>
-{/* PREVIEW ĐỀ BÀI */}
-<div className="text-gray-300 mb-2">
-Xem trước đề bài
-</div>
-
-{exercise.includes("<") ? (
-
-<div
-className="prose prose-invert max-w-none"
-dangerouslySetInnerHTML={{ __html: exercise }}
-/>
-
-) : (
-
-<ReactMarkdown remarkPlugins={[remarkGfm]}>
-{exercise}
-</ReactMarkdown>
-
-)}
-<div className="bg-white p rounded mt-2">
-
-<h2 className="text-1xl text-blue-600 font-semibold mb-4">
-Mô tả để AI sinh bài:
-</h2>
-<textarea
-placeholder="Mô tả để AI sinh bài..."
-className="w-full h-[120px] border border-blue-600 p-4 text-black mb-4 rounded"
-value={aiPrompt}
-onChange={(e)=>setAiPrompt(e.target.value)}
-/>
-
 <div className="gap-2 flex-wrap space-x-2 flex items-center">
-<input
-type="file"
-accept=".docx,.txt,.md"
-onChange={async (e)=>{
 
-const file = e.target.files?.[0]
-if(!file) return
-
-const ext = file.name.split(".").pop()?.toLowerCase()
-
-let content=""
-
-if(ext==="docx"){
-
-const arrayBuffer = await file.arrayBuffer()
-
-const result = await mammoth.convertToHtml({arrayBuffer})
-
-content = result.value   // giữ nguyên HTML
-
-}
-
-else if(ext==="txt" || ext==="md"){
-
-content = await file.text()
-
-}
-
-setExercise(content)
-
-}}
-/>
-<button
-onClick={generateAI}
-className="bg-purple-600 text-white px-3 py-1 rounded"
->
-Sinh đề bằng AI
-</button>
 <button
 onClick={createExercise}
-className="bg-blue-600 text-white px-3 py-1 rounded"
+className="bg-blue-600 text-white px-3 py-2 rounded"
 >
-Gửi bài
+Giao bài cho học sinh
 </button>
 </div>
 </div>
-<TestEditor 
-  tests={tests} 
-  setTests={setTests}
-  exercise={exercise}  
-/>
 
 
 <table className="w-full mt-6 bg-white rounded-lg overflow-hidden">
@@ -1911,7 +2013,9 @@ Gửi bài
 
 <div className="space-y-2 max-h-[300px] overflow-y-auto">
 
-{exercises.map((ex:any,index:number)=>{
+{exercises
+.sort((a,b)=>new Date(a.created_at).getTime() - new Date(b.created_at))
+.map((ex:any,index:number)=>{
 
   const title = ex.exercise
     ?.replace(/[#*]/g,"")
@@ -2009,19 +2113,22 @@ Gửi bài
 
       {/* 🔍 từng cặp */}
       <div className="mt-2 text-xs text-gray-600">
-        {g.pairs?.map((p:any,idx:number)=>(
-          <div 
-            key={idx}
-            onClick={(e)=>{
-              e.stopPropagation()
-              setSelectedPair(p)
-              loadPairCode(p)
-            }}
-            className="cursor-pointer hover:text-red-600 transition"
-          >
-            🔍 {p.a} - {p.b}: {p.score}%
+        {g.pairs && g.pairs.length > 0 && (
+          <div className="mt-2 text-xs text-gray-600">
+            {g.pairs.map((p:any)=>(
+              <div
+                key={p.a_id + "_" + p.b_id}
+                onClick={(e)=>{
+                  e.stopPropagation()
+                  loadPairCode(p)
+                }}
+                className="cursor-pointer hover:bg-gray-100 p-2 rounded"
+              >
+                🔍 {p.a} - {p.b}: {p.score}%
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
     </div>
@@ -2459,40 +2566,60 @@ ${loadingScore
 
 )}
 
-
 {tab==="stats" && stats && (
 
 <div className="space-y-6">
 
-{/* MODE */}
+{/* ===== HEADER ===== */}
+<div className="flex justify-between items-center">
+
 <div className="flex gap-2">
-<button onClick={()=>setStatMode("class")} className="bg-blue-500 text-white px-3 py-1 rounded">
+<button 
+onClick={()=>setStatMode("class")}
+className={`px-3 py-1 rounded ${statMode==="class"?"bg-blue-600 text-white":"bg-gray-200"}`}
+>
 📘 Theo lớp
 </button>
-<button onClick={()=>setStatMode("all")} className="bg-purple-500 text-white px-3 py-1 rounded">
+
+<button 
+onClick={()=>setStatMode("all")}
+className={`px-3 py-1 rounded ${statMode==="all"?"bg-purple-600 text-white":"bg-gray-200"}`}
+>
 🌍 Toàn hệ thống
 </button>
 </div>
 
-{/* SUMMARY */}
-<div className="grid grid-cols-3 gap-4">
+</div>
+
+{/* ===== KPI ===== */}
+<div className="grid grid-cols-4 gap-4">
 
 <div className="bg-indigo-500 text-white p-4 rounded-xl text-center">
-Tổng bài
+<div>Tổng bài</div>
 <div className="text-2xl font-bold">{stats.total}</div>
 </div>
 
 <div className="bg-yellow-500 text-white p-4 rounded-xl text-center">
-Đã nộp
+<div>Đã nộp</div>
 <div className="text-2xl font-bold">{stats.submitted}</div>
 </div>
 
 <div className="bg-green-500 text-white p-4 rounded-xl text-center">
-Đã chấm
+<div>Đã chấm</div>
 <div className="text-2xl font-bold">{stats.graded}</div>
 </div>
 
+<div className="bg-red-500 text-white p-4 rounded-xl text-center">
+<div>HS yếu</div>
+<div className="text-2xl font-bold">
+{stats.students.filter(s=>s.level==="Yếu").length}
 </div>
+</div>
+
+</div>
+
+{/* ===== CHART ===== */}
+<div className="grid grid-cols-2 gap-6">
 
 {/* PIE */}
 <div className="bg-white p-4 rounded-xl shadow">
@@ -2500,12 +2627,13 @@ Tổng bài
 
 <Pie
 data={{
-labels:["Giỏi","Trung bình","Yếu"],
+labels:["Giỏi","Trung bình","Yếu","Chưa học"],
 datasets:[{
 data:[
 stats.students.filter(s=>s.level==="Giỏi").length,
 stats.students.filter(s=>s.level==="Trung bình").length,
-stats.students.filter(s=>s.level==="Yếu").length
+stats.students.filter(s=>s.level==="Yếu").length,
+stats.students.filter(s=>s.level==="Chưa học").length
 ]
 }]
 }}
@@ -2513,7 +2641,25 @@ stats.students.filter(s=>s.level==="Yếu").length
 
 </div>
 
-{/* HS YẾU */}
+{/* LINE */}
+<div className="bg-white p-4 rounded-xl shadow">
+<h3 className="font-bold mb-3">📈 Tiến độ nộp bài</h3>
+
+<Line
+data={{
+labels: stats.exercises.map((_,i)=>`Bài ${i+1}`),
+datasets:[{
+label:"Tỷ lệ nộp (%)",
+data: stats.exercises.map(e=>e.rate)
+}]
+}}
+/>
+
+</div>
+
+</div>
+
+{/* ===== ALERT ===== */}
 <div className="bg-red-50 p-4 rounded-xl">
 
 <h3 className="font-bold text-red-600 mb-2">
@@ -2525,11 +2671,31 @@ stats.students.filter(s=>s.level==="Yếu").length
 .map((s:any)=>(
 <div key={s.id} className="flex justify-between border-b p-2">
 {s.name}
-<span className="text-red-500">{s.avg}</span>
+<span className="text-red-500">{s.avg ?? "—"}</span>
 </div>
 ))}
 
 </div>
+
+{/* ===== CHƯA HỌC ===== */}
+<div className="bg-gray-100 p-4 rounded-xl">
+
+<h3 className="font-bold mb-2">
+📌 Chưa học / chưa nộp
+</h3>
+
+{stats.students
+.filter(s=>s.level==="Chưa học")
+.map((s:any)=>(
+<div key={s.id} className="border-b p-2">
+{s.name}
+</div>
+))}
+
+</div>
+
+{/* ===== RANKING ===== */}
+<div className="grid grid-cols-2 gap-6">
 
 {/* TOP */}
 <div className="bg-white p-4 rounded-xl shadow">
@@ -2537,6 +2703,7 @@ stats.students.filter(s=>s.level==="Yếu").length
 <h3 className="font-bold mb-2">🏆 Top học sinh</h3>
 
 {[...stats.students]
+.filter(s=>s.avg !== null)
 .sort((a,b)=>b.avg-a.avg)
 .slice(0,5)
 .map((s:any,i)=>(
@@ -2548,22 +2715,66 @@ stats.students.filter(s=>s.level==="Yếu").length
 
 </div>
 
-{/* THEO BÀI */}
+{/* BOTTOM */}
 <div className="bg-white p-4 rounded-xl shadow">
 
-<h3 className="font-bold mb-2">📚 Thống kê theo bài</h3>
+<h3 className="font-bold mb-2">⚠️ Cần cải thiện</h3>
 
-{stats.exercises.map((e:any,i:number)=>(
+{[...stats.students]
+.filter(s=>s.avg !== null)
+.sort((a,b)=>a.avg-b.avg)
+.slice(0,5)
+.map((s:any,i)=>(
 <div key={i} className="flex justify-between border-b p-2">
-📘 Bài {i+1}
-<span>{e.rate}% nộp</span>
+{s.name}
+<span className="text-red-500">{s.avg}</span>
 </div>
 ))}
 
 </div>
 
 </div>
+
+{/* ===== THEO BÀI ===== */}
+<div className="bg-white p-4 rounded-xl shadow">
+
+<h3 className="font-bold mb-2">📚 Thống kê theo bài</h3>
+
+{stats.exercises.map((e:any)=>(
+<div key={e.id} className="flex justify-between border-b p-2">
+
+  <div className="max-w-[60%]">
+    <div className="font-medium">
+      📘 {e.title}
+    </div>
+  </div>
+
+  <div className="flex gap-3 text-sm">
+
+    <span className="text-gray-500">
+      {e.total} HS
+    </span>
+
+    <span className="text-blue-600 font-semibold">
+      {e.rate}% nộp
+    </span>
+
+  </div>
+
+</div>
+))}
+
+{stats.exercises.length===0 && (
+<div className="text-gray-400">Chưa có dữ liệu</div>
 )}
+
+</div>
+
+</div>
+)}
+
+
+
 </div>
 </div>
 </div>

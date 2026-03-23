@@ -13,7 +13,11 @@ export async function GET(req: Request){
   const class_id = searchParams.get("class_id")
   const mode = searchParams.get("mode") // class | all
 
-  let query = supabase.from("submissions").select("*")
+  /* ================= SUBMISSIONS ================= */
+
+  let query = supabase
+    .from("submissions")
+    .select("*")
 
   if(mode==="class"){
     query = query.eq("class_id", class_id)
@@ -21,9 +25,27 @@ export async function GET(req: Request){
 
   const { data: subs } = await query
 
-  const { data: users } = await supabase
+  /* ================= USERS (CHỈ HS) ================= */
+
+  let usersQuery = supabase
     .from("users")
-    .select("id,name")
+    .select("id,name,role")
+    .eq("role","student")
+
+  if(mode==="class"){
+    const { data: classStudents } = await supabase
+      .from("class_students")
+      .select("student_id")
+      .eq("class_id", class_id)
+
+    const ids = classStudents?.map(s=>s.student_id) || []
+
+    usersQuery = usersQuery.in("id", ids)
+  }
+
+  const { data: users } = await usersQuery
+
+  /* ================= MAP HS ================= */
 
   const map:any = {}
 
@@ -52,25 +74,42 @@ export async function GET(req: Request){
     }
   })
 
+  /* ================= STUDENTS ================= */
+
   const students = Object.entries(map).map(([id,v]:any)=>{
 
-    const avg = v.count ? v.scoreSum / v.count : 0
+    const avg = v.count ? v.scoreSum / v.count : null
 
-    let level = "Yếu"
-    if(avg >= 8) level = "Giỏi"
-    else if(avg >= 5) level = "Trung bình"
+    let level = "Chưa học"
+
+    if(avg !== null){
+      if(avg >= 8) level = "Giỏi"
+      else if(avg >= 5) level = "Trung bình"
+      else level = "Yếu"
+    }
 
     return {
       id,
       name: v.name,
       total: v.total,
       submitted: v.submitted,
-      avg: Number(avg.toFixed(1)),
+      avg: avg ? Number(avg.toFixed(1)) : null,
       level
     }
   })
 
-  // 🔥 theo bài
+  /* ================= EXERCISES ================= */
+
+  const { data: exerciseList } = await supabase
+    .from("generated_exercises")
+    .select("id, exercise")
+
+  const exerciseNameMap:any = {}
+
+  exerciseList?.forEach(e=>{
+    exerciseNameMap[e.id] = e.exercise
+  })
+
   const exerciseMap:any = {}
 
   subs?.forEach(s=>{
@@ -87,17 +126,30 @@ export async function GET(req: Request){
     }
   })
 
-  const exercises = Object.entries(exerciseMap).map(([id,v]:any)=>({
-    id,
-    total: v.total,
-    submitted: v.submitted,
-    rate: Math.round((v.submitted / v.total) * 100)
-  }))
+  const exercises = Object.entries(exerciseMap).map(([id,v]:any)=>{
+
+    const raw = exerciseNameMap[id] || ""
+
+    const title = raw
+      ?.replace(/[#*]/g,"")
+      ?.split("\n")[0]
+      ?.slice(0,60)
+
+    return {
+      id,
+      title: title || "Bài tập",
+      total: v.total,
+      submitted: v.submitted,
+      rate: v.total ? Math.round((v.submitted / v.total) * 100) : 0
+    }
+  })
+
+  /* ================= RETURN ================= */
 
   return NextResponse.json({
-    total: subs.length,
-    submitted: subs.filter(s=>s.status==="submitted").length,
-    graded: subs.filter(s=>s.score !== null).length,
+    total: subs?.length || 0,
+    submitted: subs?.filter(s=>s.status==="submitted").length || 0,
+    graded: subs?.filter(s=>s.score !== null).length || 0,
     students,
     exercises
   })

@@ -3,10 +3,17 @@
 import { useState } from "react"
 import ImportTestExcel from "./ImportTestExcel"
 import ImportTestFiles from "./ImportTestFiles"
+import { useEffect } from "react";
+export default function TestEditor({ tests, setTests, exercise, action,setLoadingtest }: any){
 
-export default function TestEditor({ tests, setTests, exercise }: any){
+//const [loadingtest,setLoadingtest] = useState(false)
+useEffect(() => {
+  if (!action?.type) return;
 
-  const [loading,setLoading] = useState(false)
+  if (action.type === "add") addTest();
+  if (action.type === "generate") generateTests();
+
+}, [action]);
 
   function addTest(){
     setTests([
@@ -36,7 +43,7 @@ async function generateTests(){
     return
   }
 
-  setLoading(true)
+  setLoadingtest(true)
 
   const res = await fetch("/api/generate-tests",{
     method:"POST",
@@ -50,7 +57,7 @@ async function generateTests(){
 
   const data = await res.json()
 
-  setLoading(false)
+  setLoadingtest(false)
 
   if(data.error){
     alert(data.error)
@@ -64,36 +71,17 @@ async function generateTests(){
   <div className="bg-white rounded-xl shadow p-4 space-y-4">
 
     {/* TITLE */}
-    <div className="font-semibold text-gray-700 text-sm">
-      📦 Test case
-    </div>
+ 
 
     {/* TOP GRID */}
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 gap-4">
 
       {/* IMPORT */}
       <div className="col-span-2">
         <ImportTestFiles tests={tests} setTests={setTests} />
       </div>
 
-      {/* ACTION */}
-      <div className="flex flex-col gap-3">
-
-        <button 
-          onClick={addTest}
-          className="bg-green-500 hover:bg-green-600 transition text-white py-2 rounded-lg shadow"
-        >
-          ➕ Thêm test
-        </button>
-
-        <button 
-          onClick={generateTests}
-          className="bg-purple-500 hover:bg-purple-600 transition text-white py-2 rounded-lg shadow"
-        >
-          {loading ? "⏳ Đang sinh..." : "🤖 Sinh test"}
-        </button>
-
-      </div>
+      
     </div>
 
     {/* STATS */}
