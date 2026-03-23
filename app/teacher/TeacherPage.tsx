@@ -13,8 +13,19 @@ import ChangePassword from "../components/ChangePassword"
 import TestEditor from "../components/TestEditor"
 import { tr } from "framer-motion/client"
 import Student from "../student/16h00 20.3.2026"
+
+import { Pie } from "react-chartjs-2"
+
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend
+} from "chart.js"
+
+ChartJS.register(ArcElement, Tooltip, Legend)
 export default function Teacher(){
- const router = useRouter()
+const router = useRouter()
 const searchParams = useSearchParams()
 const classId = searchParams.get("class")
 const tab = searchParams.get("tab") || "classes"
@@ -97,6 +108,15 @@ const [editContent, setEditContent] = useState("")
 
 const [sendAll,setSendAll] = useState(false)
 const [search,setSearch] = useState("")
+
+const [stats,setStats] = useState<any>(null)
+const [statMode,setStatMode] = useState("class")
+
+useEffect(()=>{
+  if(tab==="stats"){
+    loadStats()
+  }
+},[tab,statMode,selectedClass])
 
 useEffect(()=>{
 
@@ -259,6 +279,38 @@ function highlightDiff(a:string,b:string){
 
   return {resA,resB}
 }
+
+async function loadStats(){
+
+  try{
+
+    let url = ""
+
+    if(statMode==="class"){
+      if(!selectedClass){
+        console.log("❌ chưa có class")
+        return
+      }
+      url = `/api/statistics?class_id=${selectedClass}&mode=class`
+    }else{
+      url = `/api/statistics?mode=all`
+    }
+
+    console.log("CALL:", url)
+
+    const res = await fetch(url)
+
+    const data = await res.json()
+
+    console.log("DATA:", data)
+
+    setStats(data)
+
+  }catch(err){
+    console.error("Lỗi:", err)
+  }
+}
+
 async function loadPairCode(p:any, idx:number){
 
   const res = await fetch("/api/get-pair-code",{
@@ -2407,38 +2459,110 @@ ${loadingScore
 
 )}
 
-{tab==="stats" && (
 
-<div className="bg-white p-6 rounded-xl shadow-sm mb-6">
+{tab==="stats" && stats && (
 
-<h1 className="text-xl font-semibold mb-4">Thống kê</h1>
+<div className="space-y-6">
 
-<div className="grid grid-cols-2 gap-6">
+{/* MODE */}
+<div className="flex gap-2">
+<button onClick={()=>setStatMode("class")} className="bg-blue-500 text-white px-3 py-1 rounded">
+📘 Theo lớp
+</button>
+<button onClick={()=>setStatMode("all")} className="bg-purple-500 text-white px-3 py-1 rounded">
+🌍 Toàn hệ thống
+</button>
+</div>
 
-<div className="bg-white p-6 rounded">
+{/* SUMMARY */}
+<div className="grid grid-cols-3 gap-4">
 
-<h2>Tổng học sinh</h2>
+<div className="bg-indigo-500 text-white p-4 rounded-xl text-center">
+Tổng bài
+<div className="text-2xl font-bold">{stats.total}</div>
+</div>
 
-<p className="text-3xl">
-{totalStudents}
-</p>
+<div className="bg-yellow-500 text-white p-4 rounded-xl text-center">
+Đã nộp
+<div className="text-2xl font-bold">{stats.submitted}</div>
+</div>
+
+<div className="bg-green-500 text-white p-4 rounded-xl text-center">
+Đã chấm
+<div className="text-2xl font-bold">{stats.graded}</div>
+</div>
 
 </div>
 
-<div className="bg-white p-6 rounded">
+{/* PIE */}
+<div className="bg-white p-4 rounded-xl shadow">
+<h3 className="font-bold mb-3">📊 Phân loại học sinh</h3>
 
-<h2>Bài nộp</h2>
+<Pie
+data={{
+labels:["Giỏi","Trung bình","Yếu"],
+datasets:[{
+data:[
+stats.students.filter(s=>s.level==="Giỏi").length,
+stats.students.filter(s=>s.level==="Trung bình").length,
+stats.students.filter(s=>s.level==="Yếu").length
+]
+}]
+}}
+/>
 
-<p className="text-3xl">
-{totalSubmissions}
-</p>
+</div>
+
+{/* HS YẾU */}
+<div className="bg-red-50 p-4 rounded-xl">
+
+<h3 className="font-bold text-red-600 mb-2">
+🚨 Học sinh yếu
+</h3>
+
+{stats.students
+.filter(s=>s.level==="Yếu")
+.map((s:any)=>(
+<div key={s.id} className="flex justify-between border-b p-2">
+{s.name}
+<span className="text-red-500">{s.avg}</span>
+</div>
+))}
+
+</div>
+
+{/* TOP */}
+<div className="bg-white p-4 rounded-xl shadow">
+
+<h3 className="font-bold mb-2">🏆 Top học sinh</h3>
+
+{[...stats.students]
+.sort((a,b)=>b.avg-a.avg)
+.slice(0,5)
+.map((s:any,i)=>(
+<div key={i} className="flex justify-between border-b p-2">
+#{i+1} {s.name}
+<span className="text-green-600">{s.avg}</span>
+</div>
+))}
+
+</div>
+
+{/* THEO BÀI */}
+<div className="bg-white p-4 rounded-xl shadow">
+
+<h3 className="font-bold mb-2">📚 Thống kê theo bài</h3>
+
+{stats.exercises.map((e:any,i:number)=>(
+<div key={i} className="flex justify-between border-b p-2">
+📘 Bài {i+1}
+<span>{e.rate}% nộp</span>
+</div>
+))}
 
 </div>
 
 </div>
-
-</div>
-
 )}
 </div>
 </div>
