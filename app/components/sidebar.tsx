@@ -1,64 +1,51 @@
 "use client"
+import { useState } from "react"
 
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+export default function Sidebar() {
+  const [open, setOpen] = useState(false)
 
-export default function Sidebar(){
+  return (
+    <>
+      {/* Mobile button */}
+      <button
+        className="md:hidden fixed top-3 left-3 z-50 bg-purple-600 text-white px-3 py-2 rounded"
+        onClick={() => setOpen(true)}
+      >
+        ☰
+      </button>
 
-const params = useSearchParams()
+      {/* Overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={() => setOpen(false)}
+        />
+      )}
 
-const tab = params.get("tab") || "classes"
+      {/* Sidebar */}
+      <div
+        className={`
+        fixed md:relative z-50
+        top-0 left-0 h-full w-64
+        bg-white border-r shadow-sm
+        transform transition duration-300
+        ${open ? "translate-x-0" : "-translate-x-full"}
+        md:translate-x-0
+      `}
+      >
+        <div className="p-4 font-bold text-purple-600 text-lg border-b">
+          CodeMora
+        </div>
 
-function item(name:string,icon:string,key:string){
-
-const active = tab===key
-
-return(
-
-<Link
-href={`/teacher?tab=${key}`}
-className={`flex items-center gap-3 px-3 py-2 rounded transition
-${active ? "bg-blue-600" : "hover:bg-blue-700"}
-`}
->
-
-<span>{icon}</span>
-<span>{name}</span>
-
-</Link>
-
-)
-
-}
-
-return(
-
-<div className="w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white min-h-screen p-4">
-
-<h2 className="font-bold mb-6 text-lg">
-
-Menu
-
-</h2>
-
-<div className="flex flex-col gap-2">
-
-{item("Lớp học","📚","classes")}
-
-{item("Học sinh","👨‍🎓","students")}
-
-{item("Giao bài tập","📝","exercise")}
-
-{item("Bài nộp","📥","submissions")}
-
-{item("Phát hiện copy","🕵️","copy")}
-
-{item("Thống kê","📊","stats")}
-
-</div>
-
-</div>
-
-)
-
+        <div className="p-3 space-y-1 text-sm">
+          <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Lớp học</div>
+          <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Học sinh</div>
+          <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Giao bài tập</div>
+          <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Bài nộp</div>
+          <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Phát hiện copy</div>
+          <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Thống kê</div>
+        </div>
+      </div>
+    </>
+  )
 }

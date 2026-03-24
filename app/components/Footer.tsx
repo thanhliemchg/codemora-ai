@@ -62,7 +62,7 @@ export default function Footer() {
           <ul className="space-y-2 text-sm text-white/80">
             <li>Email: ntliemit@gmail.com</li>
             <li>Hotline: 0855 808 606</li>
-            <li>Tuyên Quang, Việt Nam</li>
+            <li>Việt Nam</li>
           </ul>
         </div>
 

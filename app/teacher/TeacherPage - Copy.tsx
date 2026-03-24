@@ -44,7 +44,6 @@ export default function Teacher(){
 
 const router = useRouter()
 const searchParams = useSearchParams()
-const tabQuery = searchParams.get("tab")
 const classId = searchParams.get("class")
 const tab = searchParams.get("tab") || "classes"
 const [action, setAction] = useState("");
@@ -140,67 +139,61 @@ const [stats,setStats] = useState<any>(null)
 const [statMode,setStatMode] = useState("class")
 
 useEffect(()=>{
-  localStorage.setItem("tab", tab)
-},[tab])
-
-useEffect(()=>{
   if(tab==="stats"){
     loadStats()
   }
 },[tab,statMode,selectedClass])
 
 useEffect(()=>{
-  const u = localStorage.getItem("user")
 
-  if(!u){
-    window.location.href="/login"
-    return
-  }
+const user = JSON.parse(localStorage.getItem("user") || "{}")
 
-  const userData = JSON.parse(u)
+setTeacherId(user.id)
 
-  if(userData.role !== "teacher" && userData.role !== "admin"){
-    alert("Không có quyền")
-    window.location.href="/student"
-    return
-  }
+const u = localStorage.getItem("user")
+if(!u){
+window.location.href="/login"
+return
+}
 
-  setUser(userData)
-  setTeacherId(userData.id)
+const userData = JSON.parse(u)
 
-  loadClasses()
+if(userData.role!=="teacher" && userData.role!=="admin"){
+alert("Không có quyền")
+window.location.href="/student"
+return
+}
 
-},[]) // ❗ chỉ chạy 1 lần
+setUser(userData)
 
-useEffect(()=>{
-  if(classId){
-    setSelectedClass(classId)
-  }
-},[classId])
-useEffect(()=>{
+loadClasses()
 
-  if(!classId) return
-  if(!tab) return  // ❗ CHỐT CHẶN BUG
+if(classId){
 
-  if(tab==="students"){
-    loadStudents(classId,"")
-  }
+setSelectedClass(classId)
 
-  if(tab==="submissions"){
-    loadSubmissions(classId,"")
-    loadTeacherExercises(classId)
-  }
+if(tab==="students" ){
+loadStudents(classId,"")
+}
 
-  if(tab==="exercise"){
-    loadStudents(classId,"")
-    loadExercises(classId,"")
-  }
+if(tab==="submissions"){
+loadSubmissions(classId,"")
+loadTeacherExercises(classId)
+}
 
-  if(tab==="copy"){
-    loadCopy()
-  }
+if(tab==="exercise"){
 
-},[classId, tab])
+loadStudents(classId,"")
+loadExercises(classId,"")
+}
+
+if(tab==="copy"){
+loadCopy()
+}
+
+}
+
+},[classId,tab])
 
 useEffect(()=>{
   setSelectedStudent(null)
@@ -1070,7 +1063,7 @@ return(
 
 <div className="bg-gray-100 min-h-screen text-gray-800">
 
-<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-3 sm:py-4 py-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow">
+<div className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow">
 
 <h1 className="font-bold text-2xl text-white">
 🚀 CodeMora AI
@@ -1102,7 +1095,7 @@ className="bg-red-600 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
 {showPassword && (
 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 
-<div className="bg-white p-4 sm:p-6 rounded-xl w-[95%] max-w-md">
+<div className="bg-white p-6 rounded-xl w-80">
 
 <ChangePassword/>
 
@@ -1164,7 +1157,7 @@ Lưu
 
 <div className="flex flex-col lg:flex-row">
 
-<div className="w-full lg:w-[240px] bg-white border-r shadow-sm p-3 lg:p-5">
+<div className="w-[240px] bg-white border-r shadow-sm p-5 min-h-screen">
 
   <h2 className="font-bold mb-6 text-blue-600 text-lg">
     🚀 CodeMora AI
@@ -1271,7 +1264,7 @@ Lưu
 
 </div>
 
-<div className="flex-1 p-3 sm:p-4 lg:p-8">
+<div className="flex-1 p-8">
 
 {selectedClassName && (
 
@@ -1287,7 +1280,7 @@ Lưu
 
 <h1 className="text-xl text-purple-600 font-semibold mb-4">Quản lý lớp</h1>
 
-<div className="flex flex-wrap gap-2 mb-4">
+<div className="flex gap-3 mb-4">
   <input
     placeholder="Tên lớp"
     className="border px-3 py-2 rounded w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1303,7 +1296,7 @@ Lưu
   </button>
 </div>
 
-<table className="w-full min-w-[300px] bg-white">
+<table className="w-full bg-white">
 
 <tbody>
 
@@ -1324,30 +1317,51 @@ setSelectedClassName(c.name)
 {c.name}
 </td>
 
-<td className="py-2">
-  <div className="flex flex-wrap gap-2">
+<td>
 
-    <button
-      onClick={(e)=>{
-        e.stopPropagation()
-        editClass(c.id, c.name)
-      }}
-      className="bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-    >
-      Sửa tên lớp
-    </button>
+<button
+  onClick={(e)=>{
+    e.stopPropagation()
+    loadStudents(c.id, c.name)
+  }}
+  className="bg-blue-600 px-3 py-1 text-white rounded"
+>
+  Học sinh
+</button>
 
-    <button
-      onClick={(e)=>{
-        e.stopPropagation()
-        deleteClass(c.id)
-      }}
-      className="bg-red-600 text-white px-3 py-1 rounded text-sm"
-    >
-      Xoá lớp
-    </button>
+<button
+  onClick={(e)=>{
+    e.stopPropagation()
 
-  </div>
+    // set class
+    setSelectedClass(c.id)
+    setSelectedClassName(c.name)
+
+    // 👉 chuyển tab
+    changeTab("submissions")
+
+    // 👉 load luôn
+    loadSubmissions(c.id)
+  }}
+  className="bg-green-600 px-3 py-1 text-white rounded"
+>
+  Bài nộp
+</button>
+
+<button
+onClick={()=>editClass(c.id,c.name)}
+className="bg-yellow-600 px-3 py-1 text-white rounded"
+>
+Sửa tên lớp
+</button>
+
+<button
+onClick={()=>deleteClass(c.id)}
+className="bg-red-600 px-3 py-1 text-white rounded"
+>
+Xoá lớp
+</button>
+
 </td>
 
 </tr>
@@ -1364,7 +1378,7 @@ setSelectedClassName(c.name)
 
   <h3 className="font-bold mb-3">🧠 Bài tự sinh</h3>
 
-  <table className="w-full min-w-[600px]">
+  <table className="w-full">
     <thead className="bg-purple-600 text-white">
       <tr>
         <th>STT</th>
@@ -1415,58 +1429,48 @@ setSelectedClassName(c.name)
 Quản lý học sinh
 </h1>
 
-<div className="flex items-center gap-3 flex-wrap mb-3">
 <input
-  type="file"
-  onChange={(e:any)=>setFile(e.target.files[0])}
-  className="mb-3 w-full md:w-auto"
+type="file"
+onChange={(e:any)=>setFile(e.target.files[0])}
 />
+
+<button
+onClick={handleUpload}
+disabled={loading}
+className="bg-blue-600 text-white px-3 py-1 rounded ml-2 disabled:opacity-50"
+>
+{loading ? "⏳Đang tạo tài khoản..." : "Tải lên"}
+</button>
+
 <a
-    href="/sample_students.xlsx"
-    download
-    className="rounded-lg text-blue-500 underline"
-  >
-    📄 File mẫu
-  </a>
-  <button
-    onClick={handleUpload}
-    disabled={loading}
-    className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-  >
-    {loading ? "⏳ Đang tạo..." : "⬆️ Tải lên"}
-  </button>
-  
-  <button
-    onClick={exportAccounts}
-    className="bg-green-600 text-white px-4 py-2 rounded-lg"
-  >
-    📤 Xuất TK
-  </button>
+href="/sample_students.xlsx"
+download
+className="ml-4 text-blue-400 underline">
+Tải file Excel mẫu
+</a>
+<button onClick={exportAccounts} className="bg-green-600 text-white px-3 py-1 rounded ml-2">
+Xuất lại tài khoản
+</button>
 
-  <button
-    onClick={resetSelected}
-    className="bg-red-600 text-white px-4 py-2 rounded-lg"
-  >
-    🔑 Reset MK
-  </button>
-
-  <button
-    onClick={activateAll}
-    className="bg-emerald-600 text-white px-4 py-2 rounded-lg"
-  >
-    ⚡ Kích hoạt tất cả ({students.pending.length})
-  </button>
-
-</div>
-
-
+<button
+onClick={resetSelected}
+className="bg-red-600 text-white px-3 py-1 rounded ml-2"
+>
+Reset mật khẩu đã chọn
+</button>
+<button
+onClick={activateAll}
+className="bg-green-600 text-white px-3 py-1 rounded ml-2"
+>
+Kích hoạt tất cả ({students.pending.length})
+</button>
 {/* ===== HỌC SINH CHỜ KÍCH HOẠT ===== */}
 
 <h2 className="text-lg font-bold text-gray-700 mb-2">
 Học sinh chờ kích hoạt
 </h2>
-<div className="hidden md:block">
-<table className="w-full min-w-[300px] bg-blue-100 rounded-lg overflow-hidden">
+
+<table className="w-full bg-blue-100 rounded-lg overflow-hidden">
 <thead className="bg-blue-600 text-left text-white">
 
 <tr className="border-b hover:bg-blue-600">
@@ -1509,46 +1513,7 @@ Kích hoạt
 </tbody>
 
 </table>
-</div>
-<div className="md:hidden">
-<div className="space-y-3">
 
-{students?.pending?.map((s:any)=>(
-  <div
-    key={s.id}
-    className="bg-yellow-50 border border-yellow-300 rounded-xl p-4 shadow-sm"
-  >
-
-    {/* TÊN */}
-    <div className="font-bold text-lg text-gray-800">
-      {s.name}
-    </div>
-
-    {/* EMAIL */}
-    <div className="text-sm text-gray-600 break-all">
-      {s.email}
-    </div>
-
-    {/* STATUS */}
-    <div className="mt-2 text-sm font-semibold text-yellow-600">
-      ⏳ Chờ kích hoạt
-    </div>
-
-    {/* ACTION */}
-    <div className="mt-3">
-      <button
-        onClick={()=>activateStudent(s.id)}
-        className="w-full bg-green-600 text-white py-2 rounded-lg"
-      >
-        Kích hoạt
-      </button>
-    </div>
-
-  </div>
-))}
-
-</div>
-</div>
 <div className="text-red-600 mb-8">
 Tổng học sinh chờ kích hoạt: {students.pending.length}
 </div>
@@ -1559,8 +1524,7 @@ Tổng học sinh chờ kích hoạt: {students.pending.length}
 Học sinh đã kích hoạt
 </h2>
 
-<div className="hidden md:block">
-<table className="w-full min-w-[300px] bg-blue-100 rounded-lg overflow-hidden">
+<table className="w-full bg-blue-100 rounded-lg overflow-hidden">
 <thead className="bg-blue-600 text-left text-white">
 <tr>
 <th className="p-2">Tên học sinh</th>
@@ -1592,7 +1556,7 @@ setSelectedStudents([])
 <td>{s.name}</td>
 <td>{s.email}</td>
 
-<td className="text-purple-400 font-semibold">
+<td className="text-green-400 font-semibold">
 Đã kích hoạt
 </td>
 
@@ -1634,89 +1598,6 @@ setSelectedStudents(selectedStudents.filter(id=>id!==s.id))
 </tbody>
 
 </table>
-</div>
-<div className="md:hidden">
-<div className="space-y-3">
-
-{students?.active?.map((s:any)=>{
-
-  const checked = selectedStudents.includes(s.id)
-
-  return (
-    <div
-      key={s.id}
-      className={`border rounded-xl p-4 shadow-sm flex gap-3 items-start
-      ${checked ? "bg-blue-50 border-blue-400" : "bg-white"}
-      `}
-    >
-
-      {/* AVATAR */}
-      <div className="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">
-        {s.name?.charAt(0)}
-      </div>
-
-      {/* CONTENT */}
-      <div className="flex-1">
-
-        {/* NAME */}
-        <div className="font-bold text-gray-800">
-          {s.name}
-        </div>
-
-        {/* EMAIL */}
-        <div className="text-sm text-gray-600 break-all">
-          {s.email}
-        </div>
-
-        {/* STATUS */}
-        <div className="mt-1 text-sm font-semibold text-green-600">
-          ✅ Đã kích hoạt
-        </div>
-
-        {/* ACTION */}
-        <div className="flex gap-2 mt-3">
-
-          <button
-            onClick={()=>setEditingStudent(s)}
-            className="flex-1 bg-yellow-500 text-white py-2 rounded-lg"
-          >
-            Sửa
-          </button>
-
-          <button
-            onClick={()=>deleteStudent(s.id)}
-            className="flex-1 bg-red-600 text-white py-2 rounded-lg"
-          >
-            Xoá
-          </button>
-
-        </div>
-
-      </div>
-
-      {/* CHECKBOX */}
-      <div>
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e)=>{
-            if(e.target.checked){
-              setSelectedStudents([...selectedStudents,s.id])
-            }else{
-              setSelectedStudents(
-                selectedStudents.filter(id=>id!==s.id)
-              )
-            }
-          }}
-        />
-      </div>
-
-    </div>
-  )
-})}
-
-</div>
-</div>
 
 <div className="text-red-600 mt-4">
 Tổng học sinh trong lớp: {students.active.length}
@@ -1870,7 +1751,7 @@ dangerouslySetInnerHTML={{ __html: exercise }}
       👨‍🎓 Chọn học sinh ({allStudents.filter(s => s.status === "active").length})
     </div>
 
-    <div className="flex flex-wrap gap-2">
+    <div className="flex gap-2">
 
       <button
         onClick={()=>setSelectedStudents(allStudents.filter(s => s.status === "active").map(s=>s.id))}
@@ -1903,7 +1784,7 @@ dangerouslySetInnerHTML={{ __html: exercise }}
   {/* TABLE */}
   <div className="max-h-40 overflow-auto">
 
-    <table className="w-full min-w-[600px] text-sm">
+    <table className="w-full text-sm">
 
       <thead className="bg-gray-100 sticky top-0">
         <tr>
@@ -1979,17 +1860,18 @@ Giao bài cho học sinh
 </div>
 
 
-<table className="w-full min-w-[300px] bg-white rounded-lg overflow-hidden">
+<table className="w-full mt-6 bg-white rounded-lg overflow-hidden">
 
 <thead className="bg-blue-300 text-gray-800">
 <tr>
 
-<th className="p-3 text-center wrap-text">Đề bài</th>
+<th className="p-3 text-center">Đề bài</th>
 
-<th className="p-3 text-center wrap-text">Số HS</th>
+<th className="p-3 text-center">Số HS</th>
 
-<th className="p-3 text-center wrap-text">Ngày giao</th>
+<th className="p-3 text-center">Ngày giao</th>
 
+<th className="p-3 text-center">Số học sinh đã nộp</th>
 
 </tr>
 </thead>
@@ -2028,6 +1910,13 @@ Giao bài cho học sinh
   hour12: false
 })}
 </td>
+
+<td className="p-3 text-sm text-center">
+
+{totalSubmissions || "-"}
+
+</td>
+
 </tr>
 ))}
 
@@ -2057,7 +1946,7 @@ Giao bài cho học sinh
           ✏️ Sửa đề và test
         </h2>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
 
           <button
             onClick={async ()=>{
@@ -2288,7 +2177,7 @@ Giao bài cho học sinh
 
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
 
             <pre className="bg-black text-green-400 p-3 rounded text-xs overflow-auto max-h-60">
               {p.codeA || "👉 Click để load"}
@@ -2317,36 +2206,43 @@ Giao bài cho học sinh
 <div className="space-y-6">
 
 {/* ================= KPI ================= */}
-<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-  {[
-    { label: "Tổng bài", value: totalAll, color: "bg-purple-600" },
-    { label: "Đã nộp", value: totalSubmitted, color: "bg-yellow-500" },
-    { label: "Đã chấm", value: totalGraded, color: "bg-green-600" },
-    { label: "Chưa nộp", value: totalPending, color: "bg-red-500" },
-  ].map((kpi, i) => (
-    <div key={i} className={`${kpi.color} text-white p-4 rounded-xl shadow text-center`}>
-      <div className="text-sm opacity-80">{kpi.label}</div>
-      <div className="text-2xl font-bold">{kpi.value}</div>
-    </div>
-  ))}
+<div className="grid grid-cols-4 gap-4">
+
+  <div className="bg-purple-600 text-white p-4 rounded text-center">
+    <div>Tổng bài</div>
+    <div className="text-2xl font-bold">{totalAll}</div>
+  </div>
+
+  <div className="bg-yellow-500 text-white p-4 rounded text-center">
+    <div>Đã nộp</div>
+    <div className="text-2xl font-bold">{totalSubmitted}</div>
+  </div>
+
+  <div className="bg-green-600 text-white p-4 rounded text-center">
+    <div>Đã chấm</div>
+    <div className="text-2xl font-bold">{totalGraded}</div>
+  </div>
+
+  <div className="bg-red-500 text-white p-4 rounded text-center">
+    <div>Chưa nộp</div>
+    <div className="text-2xl font-bold">{totalPending}</div>
+  </div>
+
 </div>
 
 
 {/* ================= TỔNG HỢP ================= */}
-{/*Desktop*/}
-<div className="hidden lg:block bg-white p-4 rounded-xl shadow">
+<div className="bg-white p-4 rounded-xl shadow">
 
-<h3 className="font-bold mb-3">📊 Tổng hợp lớp</h3>
+<div className="font-bold mb-3">📊 Tổng hợp lớp</div>
 
-<div className="overflow-x-auto">
-<table className="w-full min-w-[700px] text-sm">
-
+<table className="w-full text-sm">
 <thead className="bg-blue-600 text-white">
 <tr>
-  <th className="p-2">#</th>
+  <th>STT</th>
   <th>Học sinh</th>
-  <th>📘 GV giao</th>
-  <th>🧠 HS tự sinh</th>
+  <th>📘 Số bài GV giao</th>
+  <th>🧠 Số bài HS tự sinh</th>
   <th>Điểm TB AI</th>
   <th>Điểm TB GV</th>
 </tr>
@@ -2367,42 +2263,31 @@ Giao bài cho học sinh
       }
     }
 
-    if(s.type==="teacher") acc[s.student_name].gv++
+    if(s.type === "teacher") acc[s.student_name].gv++
     else acc[s.student_name].practice++
 
-    if(s.ai_score!=null) acc[s.student_name].ai.push(s.ai_score)
-    if(s.teacher_score!=null) acc[s.student_name].gvScore.push(s.teacher_score)
+    if(s.ai_score != null) acc[s.student_name].ai.push(s.ai_score)
+    if(s.teacher_score != null) acc[s.student_name].gvScore.push(s.teacher_score)
 
     return acc
 
   }, {})
-).map((s:any,i:number)=>{
+).map((s:any, i:number)=>{
 
   const avg = (arr:any[]) =>
     arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : "-"
 
-  return(
+  return (
     <tr
       key={i}
-        onClick={()=>{
-          setSelectedStudent(s.name)
-          setSelectedSubmission(null)
-
-          // 🔥 scroll xuống bảng dưới
-          setTimeout(()=>{
-            detailRef.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "start"
-            })
-          }, 150)
-        }}
-        className={`
-          cursor-pointer border text-center hover:bg-gray-100
-          ${selectedStudent === s.name ? "bg-blue-100 font-semibold" : ""}
-        `}
-      >
+      className="border text-center cursor-pointer hover:bg-gray-100"
+      onClick={()=>{
+        setSelectedStudent(s.name)
+        setSelectedSubmission(null)
+      }}
+    >
       <td>{i+1}</td>
-      <td className="font-medium">{s.name}</td>
+      <td>{s.name}</td>
       <td>{s.gv}</td>
       <td>{s.practice}</td>
       <td>{avg(s.ai)}</td>
@@ -2414,117 +2299,36 @@ Giao bài cho học sinh
 
 </tbody>
 </table>
-</div>
 
 </div>
-{/* ================= MOBILE ================= */}
-<div className="lg:hidden space-y-3">
 
-<h3 className="font-bold mb-2">📊 Tổng hợp lớp</h3>
-
-{Object.values(
-  submissions.reduce((acc:any, s:any)=>{
-
-    if(!acc[s.student_name]){
-      acc[s.student_name] = {
-        name: s.student_name,
-        gv: 0,
-        practice: 0,
-        ai: [],
-        gvScore: []
-      }
-    }
-
-    if(s.type==="teacher") acc[s.student_name].gv++
-    else acc[s.student_name].practice++
-
-    if(s.ai_score!=null) acc[s.student_name].ai.push(s.ai_score)
-    if(s.teacher_score!=null) acc[s.student_name].gvScore.push(s.teacher_score)
-
-    return acc
-
-  }, {})
-).map((s:any,j:number)=>{
-
-  const avg = (arr:any[]) =>
-    arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : "-"
-
-  return(
-    <div
-      key={j}
-      onClick={()=>{
-        setSelectedStudent(s.name)
-        setSelectedSubmission(null)
-
-        setTimeout(()=>{
-          detailRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest"
-          })
-        }, 150)
-      }}
-      className={`bg-white p-4 rounded-xl shadow cursor-pointer
-      ${selectedStudent === s.name ? "border-2 border-blue-500" : ""}
-    `}
-    >
-
-      {/* tên */}
-      <div className="flex justify-between items-center">
-        <div className="font-semibold">{s.name}</div>
-        <div className="text-xs text-gray-400">#{j+1}</div>
-      </div>
-
-      {/* stats */}
-      <div className="grid grid-cols-2 gap-2 text-sm mt-3">
-
-        <div>📘 Số bài GV giao: <b>{s.gv}</b></div>
-        <div>🧠 Số bài HS tự sinh: <b>{s.practice}</b></div>
-
-        <div>🤖 Điểm TB AI: <b>{avg(s.ai)}</b></div>
-        <div>👨‍🏫 Điểm TB GV: <b>{avg(s.gvScore)}</b></div>
-
-      </div>
-
-    </div>
-  )
-
-})}
-
-</div>
 
 {/* ================= MAIN ================= */}
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+<div className="grid grid-cols-2 gap-2">
 
 {/* ===== NỘI DUNG ===== */}
 <div className="col-span-3 space-y-4">
 
 {/* TAB */}
-<div className="flex flex-wrap gap-2">
+<div className="flex gap-2">
 
 <button
 onClick={()=>{
   setView("teacher")
   setSelectedSubmission(null)
 }}
-className={`px-3 py-1 rounded ${
-  view === "teacher"
-    ? "bg-blue-600 text-white"
-    : "bg-gray-200"
-}`}
+
+className={`px-3 py-1 rounded ${view==="teacher" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
 >
 📘 GV giao
 </button>
 
 <button
-onClick={()=>{
+onClick={()=> {
   setView("practice")
   setSelectedSubmission(null)
 }}
-className={`px-3 py-1 rounded ${
-  view === "practice"
-    ? "bg-purple-600 text-white"
-    : "bg-gray-200"
-}`}
+className={`px-3 py-1 rounded ${view==="practice" ? "bg-purple-600 text-white" : "bg-gray-200"}`}
 >
 🧠 HS tự sinh
 </button>
@@ -2534,11 +2338,7 @@ onClick={()=>{
   setView("all")
   setSelectedSubmission(null)
 }}
-className={`px-3 py-1 rounded ${
-  view === "all"
-    ? "bg-green-600 text-white"
-    : "bg-gray-200"
-}`}
+className={`px-3 py-1 rounded ${view==="all" ? "bg-green-600 text-white" : "bg-gray-200"}`}
 >
 📋 Tất cả
 </button>
@@ -2547,134 +2347,72 @@ className={`px-3 py-1 rounded ${
 
 
 {/* TABLE */}
-<div className="hidden lg:block bg-white rounded-xl shadow overflow-hidden">
+<div className="bg-white p-4 rounded-xl shadow">
+<table className="w-full table-auto text-sm">
+<thead className="bg-blue-600 text-white text-center">
+<tr>
+      <th className="p w-[60px] text-center">STT</th>
+      <th className="p text-center w-[35%]">Học sinh</th>
+      <th className="p w-[100px] text-center">Loại bài</th>
+      <th className="p w-[90px] text-center">Điểm AI</th>
+      <th className="p w-[90px] text-center">Điểm GV</th>
+      <th className="p w-[140px] text-center">Trạng thái</th>
+    </tr>
+</thead>
 
-  <div className="overflow-x-auto">
-    <table className="w-full text-sm min-w-[700px]">
-
-      <thead className="bg-blue-600 text-white sticky top-0">
-        <tr>
-          <th className="p-2">STT</th>
-          <th>Học sinh</th>
-          <th>Loại bài</th>
-          <th>Điểm AI</th>
-          <th>Điểm GV</th>
-          <th>Trạng thái</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {submissions
-        .filter((s:any)=>{
-
-          // lọc theo học sinh
-          if(selectedStudent){
-            if(s.student_name !== selectedStudent) return false
-          }
-
-          // 🔥 filter theo tab
-          if(view === "teacher") return s.type === "teacher"
-          if(view === "practice") return s.type === "practice"
-
-          return true
-        })
-        .map((s:any,i:number)=>(
-          <tr
-            key={s.id}
-            onClick={()=>{
-              setSelectedSubmission(s)
-
-              setSelectedStudent(s.student_name) // 🔥 thêm
-
-              setTimeout(()=>{
-                detailRef.current?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start"
-                })
-              }, 150)
-            }}
-            className={`
-              cursor-pointer border text-center hover:bg-blue-50
-              ${selectedSubmission?.id === s.id ? "bg-blue-100" : ""}
-            `}
-          >
-            <td>{i+1}</td>
-            <td className="font-medium">{s.student_name}</td>
-
-            <td>
-              {s.type==="teacher"
-                ? <span className="bg-blue-100 px-2 rounded">📘 GV giao</span>
-                : <span className="bg-purple-200 px-2 rounded">🧠 HS tự sinh</span>
-              }
-            </td>
-
-            <td>{s.ai_score ?? "-"}</td>
-            <td>{s.teacher_score ?? "-"}</td>
-
-            <td>
-              <span className="text-xs px-2 py-1 rounded bg-gray-100">
-                {statusMap[s.status] ||"❌ Chưa nộp"}
-              </span>
-            </td>
-
-          </tr>
-        ))}
-      </tbody>
-
-    </table>
-  </div>
-</div>
-{/* ===== MOBILE ===== */}
-<div className="lg:hidden space-y-3">
+<tbody>
 {submissions
-  .filter((s:any)=>{
+.filter((s:any)=>{
 
-    if(selectedStudent){
-      if(s.student_name !== selectedStudent) return false
-    }
+  if(selectedStudent !==null && selectedStudent !==""){
+    if(s.student_name !== selectedStudent) return false
+  }
 
-    if(view === "teacher") return s.type === "teacher"
-    if(view === "practice") return s.type === "practice"
+  if(view === "teacher") return s.type === "teacher"
+  if(view === "practice") return s.type === "practice"
 
-    return true
-  })
-  .map((s:any,i:number)=>(
+  return true
+})
 
-  <div
-    key={s.id}
-    onClick={()=>{
-    setSelectedSubmission(s)
-    setSelectedStudent(s.student_name) // 🔥 thêm dòng này
+.map((s:any,i:number)=>(
+<tr
+key={s.id}
+onClick={()=>{
 
-    setTimeout(()=>{
-      detailRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      })
-    }, 150)
-  }}
-    className="bg-white p-4 rounded-xl shadow border active:scale-[0.98] transition"
-  >
+  setSelectedSubmission(s)
 
-    <div className="flex justify-between items-center">
-      <div className="font-semibold">{s.student_name}</div>
-      <div className="text-xs bg-gray-100 px-2 py-1 rounded">
-        {statusMap[s.status]}
-      </div>
-    </div>
+  setTimeout(()=>{
+    detailRef.current?.scrollIntoView({behavior:"smooth"})
+  },100)
 
-    <div className="text-sm text-gray-500 mt-1">
-      {s.type==="teacher" ? "📘 GV giao" : "🧠 Tự sinh"}
-    </div>
+}}
+className={`cursor-pointer border text-center hover:bg-blue-50
+${selectedSubmission?.id === s.id ? "bg-blue-100" : ""}`}
+>
 
-    <div className="flex justify-between mt-3 text-sm">
-      <div>Điểm AI: <b>{s.ai_score ?? "-"}</b></div>
-      <div>Điểm GV: <b>{s.teacher_score ?? "-"}</b></div>
-    </div>
+<td>{i+1}</td>
+<td>{s.student_name}</td>
 
-  </div>
+<td>
+{s.type==="teacher"
+  ? <span className="bg-blue-100 px-2 rounded">📘 GV giao</span>
+  : <span className="bg-purple-200 px-2 rounded">🧠 Tự sinh</span>
+}
+</td>
 
+<td>{s.ai_score ?? "-"}</td>
+<td>{s.teacher_score ?? "-"}</td>
+
+<td>
+{statusMap[s.status] ?? "❌ Chưa nộp"}
+</td>
+
+</tr>
 ))}
+
+</tbody>
+</table>
+
 </div>
 
 
@@ -2683,33 +2421,12 @@ className={`px-3 py-1 rounded ${
 
 {selectedSubmission && (
 
-<div className="bg-white p-4 rounded-xl shadow space-y-3">
+<div className="bg-white p-4 rounded shadow">
 
-  {/* HEADER */}
-  <div className="flex items-center justify-between">
-
-    <div>
-      <div className="text-sm text-gray-500">Học sinh</div>
-      <div className="font-semibold text-blue-600">
-        {selectedSubmission.student_name}
-      </div>
-    </div>
-
-    <button
-      onClick={()=>setSelectedSubmission(null)}
-      className="text-gray-400 hover:text-red-500 text-xl"
-    >
-      ✕
-    </button>
-
-  </div>
-
-  {/* TITLE */}
-  <div className="font-bold text-gray-800 border-b pb-2">
-    📄 Chi tiết bài làm
-  </div>
-
-
+<div className="flex justify-between mb-3">
+<div className="font-bold">📄 CHI TIẾT BÀI LÀM</div>
+<button onClick={()=>setSelectedSubmission(null)}>❌</button>
+</div>
 
 {/* ĐỀ */}
 <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -2750,10 +2467,11 @@ className={`px-3 py-1 rounded ${
     <div className="bg-white p-4 rounded-xl shadow mt-3">
 
       {/* 🔥 AI FEEDBACK */}
-      
+      <h3 className="font-bold mb-2">🤖 AI nhận xét</h3>
+
       <div className="prose prose-sm max-w-none">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {feedback || "Chưa có nhận xét từ AI"}
+          {feedback}
         </ReactMarkdown>
       </div>
 
@@ -2863,7 +2581,7 @@ ${loadingScore
 {/* ===== HEADER ===== */}
 <div className="flex justify-between items-center">
 
-<div className="flex flex-wrap gap-2">
+<div className="flex gap-2">
 <button 
 onClick={()=>setStatMode("class")}
 className={`px-3 py-1 rounded ${statMode==="class"?"bg-blue-600 text-white":"bg-gray-200"}`}
@@ -2882,7 +2600,7 @@ className={`px-3 py-1 rounded ${statMode==="all"?"bg-purple-600 text-white":"bg-
 </div>
 
 {/* ===== KPI ===== */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div className="grid grid-cols-4 gap-4">
 
 <div className="bg-indigo-500 text-white p-4 rounded-xl text-center">
 <div>Tổng bài</div>
@@ -2909,7 +2627,7 @@ className={`px-3 py-1 rounded ${statMode==="all"?"bg-purple-600 text-white":"bg-
 </div>
 
 {/* ===== CHART ===== */}
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div className="grid grid-cols-2 gap-6">
 
 {/* PIE */}
 <div className="bg-white p-4 rounded-xl shadow">
@@ -2985,7 +2703,7 @@ data: stats.exercises.map(e=>e.rate)
 </div>
 
 {/* ===== RANKING ===== */}
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div className="grid grid-cols-2 gap-6">
 
 {/* TOP */}
 <div className="bg-white p-4 rounded-xl shadow">
