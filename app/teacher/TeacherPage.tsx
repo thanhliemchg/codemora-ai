@@ -12,7 +12,7 @@ import Header from "../components/header"
 import ChangePassword from "../components/ChangePassword"
 import TestEditor from "../components/TestEditor"
 import { b, tr } from "framer-motion/client"
-import Student from "../student/16h00 20.3.2026"
+
 
 import {
   Chart as ChartJS,
@@ -68,6 +68,14 @@ const [students,setStudents] = useState({
 pending:[],
 active:[]
 })
+
+const statusMap = {
+  graded: "✅ Đã chấm",
+  submitted: "📥 Đã nộp",
+  pending: "❌ Chưa nộp",
+  not_submitted: "❌ Chưa nộp",
+  assigned: "📌 Đã giao"
+};
 
 const [submissions,setSubmissions] = useState<any[]>([])
 const [copyCases,setCopyCases] = useState([])
@@ -2394,9 +2402,7 @@ ${selectedSubmission?.id === s.id ? "bg-blue-100" : ""}`}
 <td>{s.teacher_score ?? "-"}</td>
 
 <td>
-{s.status==="graded" && "✅ Đã chấm"}
-{s.status==="submitted" && "📥 Đã nộp"}
-{s.status==="pending" && "❌ Chưa nộp"}
+{statusMap[s.status] ?? "❌ Chưa nộp"}
 </td>
 
 </tr>
