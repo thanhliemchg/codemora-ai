@@ -13,32 +13,10 @@ import ChangePassword from "../components/ChangePassword"
 import TestEditor from "../components/TestEditor"
 import { b, tr } from "framer-motion/client"
 import LayoutContainer from "../components/LayoutContainer"
+import ExcelJS from "exceljs"
+import { saveAs } from "file-saver"
+import Student from "../student/16h00 20.3.2026"
 
-
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement
-} from "chart.js"
-
-import { Pie, Line } from "react-chartjs-2"
-
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement
-)
-
-ChartJS.register(ArcElement, Tooltip, Legend)
 export default function Teacher(){
 
 
@@ -122,6 +100,7 @@ const [loadingScore,setLoadingScore] = useState(false)
 const [selectedPair,setSelectedPair] = useState(null)
 const [pairCodes,setPairCodes] = useState([])
 
+
 const totalAll = submissions.length
 
 const totalSubmitted = submissions.filter(s=>s.status==="submitted").length
@@ -129,6 +108,7 @@ const totalSubmitted = submissions.filter(s=>s.status==="submitted").length
 const totalGraded = submissions.filter(s=>s.status==="graded").length
 
 const totalPending = submissions.filter(s=>s.status==="pending").length
+const totalActive = submissions.filter(s=>s.status==="active").length
 
 const [editingStudent,setEditingStudent] = useState<any>(null)
 
@@ -138,42 +118,217 @@ const [editContent, setEditContent] = useState("")
 const [sendAll,setSendAll] = useState(false)
 const [search,setSearch] = useState("")
 
-const [stats, setStats] = useState<any>({
-  total: 0,
-  submitted: 0,
-  graded: 0,
-  students: [],
-  exercises: [],
-  teacher: {
+const [stats, setStats] = useState({
+  kpi: {
     totalExercises: 0,
-    totalAssigned: 0,
-    totalSubmitted: 0,
-    totalGraded: 0,
-    totalPending: 0
-  },
-  practice: {
-    totalPractice: 0,
     totalStudents: 0,
-    graded: 0,
-    pending: 0,
-    weakStudents: 0,
-    avgScore: 0
-  }
+    submitted: 0,
+    notSubmitted: 0,
+    graded: 0
+  },
+  warningStudents: [],
+  topStudents: [],
+  exercises: []
 })
+
 const [statMode,setStatMode] = useState("class")
 
 const statStudents = stats.students || []
 
-const gioi = statStudents.filter(s=>s.level==="Giỏi").length
-const tb = statStudents.filter(s=>s.level==="Trung bình").length
-const yeu = statStudents.filter(s=>s.level==="Yếu").length
-const chua = statStudents.filter(s=>!s.level || s.level==="Chưa học").length
+const sortedExercises = [...(exercises || [])].sort(
+  (a, b) => new Date(b.created_at).getTime() - new Date(b.created_at).getTime()
+)
 
-useEffect(()=>{
-  if(tab==="stats"){
-    loadStats()
-  }
-},[tab,statMode,selectedClass])
+
+const exportExcelVIP = async () => {
+  const workbook = new ExcelJS.Workbook()
+
+  const safeSubs = Array.isArray(submissions) ? submissions : []
+  const safeExercises = Array.isArray(exercises) ? exercises : []
+
+  // =====================================
+  // 🔥 BUILD STUDENT MAP (KHÔNG PHỤ THUỘC students)
+  // =====================================
+  const studentMap = new Map()
+
+  safeSubs.forEach(s => {
+    if (!studentMap.has(s.student_id)) {
+      studentMap.set(s.student_id, {
+        id: s.student_id,
+        name: s.student_name || "Học sinh",
+        gv: 0,
+        hs: 0,
+        scores: []
+      })
+    }
+
+    const st = studentMap.get(s.student_id)
+
+    if (s.exercise_id) st.gv++
+    if (s.type === "practice") st.hs++
+
+    if (typeof s.teacher_score === "number") {
+      st.scores.push(s.teacher_score)
+    }
+  })
+
+  const studentsArr = Array.from(studentMap.values())
+
+  // =====================================
+  // 📊 SHEET 1: TỔNG HỢP
+  // =====================================
+  const ws1 = workbook.addWorksheet("Tổng hợp")
+
+  ws1.columns = [
+    { header: "STT", key: "stt", width: 6 },
+    { header: "Học sinh", key: "name", width: 25 },
+    { header: "Số bài GV nộp", key: "gv", width: 18 },
+    { header: "Số bài tự sinh", key: "hs", width: 18 },
+    { header: "Điểm TB GV", key: "avg", width: 15 },
+  ]
+
+  ws1.getRow(1).eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FFFFFF" } }
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "4472C4" } }
+    cell.alignment = { horizontal: "center" }
+  })
+
+  ws1.views = [{ state: "frozen", ySplit: 1 }]
+  ws1.autoFilter = "A1:E1"
+
+  studentsArr.forEach((st, i) => {
+    const avg =
+      st.scores.length > 0
+        ? (st.scores.reduce((a, b) => a + b, 0) / st.scores.length).toFixed(2)
+        : "-"
+
+    ws1.addRow({
+      stt: i + 1,
+      name: st.name,
+      gv: st.gv,
+      hs: st.hs,
+      avg
+    })
+  })
+
+  // =====================================
+  // 📄 SHEET 2: CHI TIẾT
+  // =====================================
+  const ws2 = workbook.addWorksheet("Chi tiết")
+
+  ws2.columns = [
+    { header: "Học sinh", key: "name", width: 25 },
+    { header: "Bài", key: "exercise", width: 20 },
+    { header: "Đề bài", key: "content", width: 50 },
+    { header: "Loại", key: "type", width: 15 },
+    { header: "Điểm GV", key: "score", width: 12 },
+  ]
+
+  ws2.getRow(1).eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FFFFFF" } }
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "70AD47" } }
+  })
+
+  ws2.views = [{ state: "frozen", ySplit: 1 }]
+  ws2.autoFilter = "A1:E1"
+  ws2.getColumn("content").alignment = { wrapText: true }
+
+  safeExercises.forEach((ex, index) => {
+  const subs = safeSubs.filter(s => s.exercise_id === ex.id)
+
+  subs.forEach((s, i) => {
+    const student = studentMap.get(s.student_id)
+
+    ws2.addRow({
+      name: student?.name || "",
+      exercise: `Bài ${sortedExercises.length-index}`, // ✅ KHÔNG còn ID
+      content: i === 0
+        ? (ex.exercise_text?.split("\n")[0] || "") // ✅ chỉ dòng đầu
+        : "",
+      type: "GV giao",
+      score: s.teacher_score ?? "-"
+    })
+  })
+})
+
+// 👉 thêm bài tự sinh
+safeSubs
+  .filter(s => s.type === "practice")
+  .forEach(s => {
+    const student = studentMap.get(s.student_id)
+
+    ws2.addRow({
+      name: student?.name || "",
+      exercise: "Tự sinh",
+      content: "",
+      type: "Tự sinh",
+      score: s.teacher_score ?? "-"
+    })
+  })
+
+  // =====================================
+  // 📚 SHEET 3: THEO BÀI (CÁI BẠN THIẾU)
+  // =====================================
+  const ws3 = workbook.addWorksheet("Theo bài")
+
+  ws3.columns = [
+    { header: "Bài", key: "name", width: 20 },
+    { header: "Số HS nộp", key: "submitted", width: 18 },
+    { header: "Điểm cao nhất", key: "max", width: 18 },
+    { header: "Điểm thấp nhất", key: "min", width: 18 },
+    { header: "Điểm TB", key: "avg", width: 15 },
+  ]
+
+  ws3.getRow(1).eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FFFFFF" } }
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "ED7D31" } }
+  })
+
+  ws3.views = [{ state: "frozen", ySplit: 1 }]
+  ws3.autoFilter = "A1:E1"
+
+  safeExercises.forEach((ex, i) => {
+
+  const subs = safeSubs.filter(
+    s =>
+      String(s.exercise_id) === String(ex.id) &&
+      s.type !== "practice" &&
+      s.code != null
+  )
+
+  const uniqueStudents = new Set(subs.map(s => s.student_id))
+
+  const scores = subs
+    .map(s => s.teacher_score)
+    .filter(s => typeof s === "number")
+
+  const max = scores.length ? Math.max(...scores) : "-"
+  const min = scores.length ? Math.min(...scores) : "-"
+  const avg = scores.length
+    ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)
+    : "-"
+
+  ws3.addRow({
+    name: `Bài ${safeExercises.length - i}`,
+    submitted: uniqueStudents.size,
+    max,
+    min,
+    avg
+  })
+})
+  // =====================================
+  // ⬇ DOWNLOAD
+  // =====================================
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer])
+
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = "Thong_ke_full.xlsx"
+  a.click()
+}
+
 
 useEffect(()=>{
   const u = localStorage.getItem("user")
@@ -1297,20 +1452,7 @@ Lưu
     </li>
 
 
-    {/* ===== STATS ===== */}
-    <li
-      onClick={()=>changeTab("stats")}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${tab==="stats"
-        ? "bg-blue-100 text-blue-700 font-medium"
-        : "hover:bg-gray-100 text-gray-700"}
-      `}
-    >
-      <span>📊</span>
-      <span>Thống kê</span>
-    </li>
-
-  </ul>
+    </ul>
 
 </div>
 
@@ -2037,43 +2179,39 @@ Giao bài cho học sinh
 </tr>
 </thead>
 
+
 <tbody>
+  {sortedExercises.map((e: any, index: number) => (
+    <tr key={e.id} className="border-b hover:bg-gray-50">
 
-{exercises?.map((e:any)=>(
-<tr key={e.id} className="border-b hover:bg-gray-50">
+      <td className="px-3 py-2 text-gray-700">
+        <span
+          className="text-blue-600 cursor-pointer hover:underline"
+          onClick={() => {
+            setSelectedExercise(e)
+            setTests(Array.isArray(e.test_cases) ? e.test_cases : [])
+            setEditContent(e.exercise)
+            setShowModal(true)
+          }}
+        >
+          📄 Bài {sortedExercises.length - index}
+        </span>
+      </td>
 
-<td className="px-3 py-2 text-gray-700">
+      <td className="p-3 text-sm text-center">
+        {e.student_count || "-"}
+      </td>
 
-  <span
-    className="text-red-500 cursor-pointer"
-    onClick={()=>{
-    setSelectedExercise(e)
-    setTests(Array.isArray(e.test_cases) ? e.test_cases : [])
-    setEditContent(e.exercise)
-    setShowModal(true)
-    }}
-  >
-    ▶ Xem đề
-  </span>
+      <td className="p-3 text-sm text-center">
+        {e.created_at
+          ? new Date(new Date(e.created_at).getTime() + 7 * 3600000)
+              .toLocaleString("vi-VN", { hour12: false })
+          : "-"
+        }
+      </td>
 
-</td>
-
-
-<td className="p-3 text-sm text-center">
-
-{e.student_count || "-"}
-
-</td>
-
-<td className="p-3 text-sm text-center">
-{new Date(e.created_at).toLocaleString("vi-VN", {
-  timeZone: "Asia/Ho_Chi_Minh",
-  hour12: false
-})}
-</td>
-</tr>
-))}
-
+    </tr>
+  ))}
 </tbody>
 
 </table>
@@ -2178,7 +2316,6 @@ Giao bài cho học sinh
 <div className="space-y-2 max-h-[300px] overflow-y-auto">
 
 {exercises
-.sort((a,b)=>new Date(a.created_at).getTime() - new Date(b.created_at))
 .map((ex:any,index:number)=>{
 
   const title = ex.exercise
@@ -2201,7 +2338,7 @@ console.log("EXERCISES",exercises)
       <div className="flex justify-between">
 
         <div className="font-semibold">
-          📘 Bài {index+1}
+          📘 Bài {sortedExercises.length - index}
         </div>
 
         <div className="text-xs text-gray-400">
@@ -2362,10 +2499,10 @@ console.log("EXERCISES",exercises)
 {/* ================= KPI ================= */}
 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
   {[
-    { label: "Tổng bài", value: totalAll, color: "bg-purple-600" },
+    { label: "Tổng số", value: totalAll, color: "bg-purple-600" },
     { label: "Đã nộp", value: totalSubmitted, color: "bg-yellow-500" },
     { label: "Đã chấm", value: totalGraded, color: "bg-green-600" },
-    { label: "Chưa nộp", value: totalPending, color: "bg-red-500" },
+    { label: "Chưa nộp", value: totalPending+totalActive, color: "bg-red-500" },
   ].map((kpi, i) => (
     <div key={i} className={`${kpi.color} text-white p-4 rounded-xl shadow text-center`}>
       <div className="text-sm opacity-80">{kpi.label}</div>
@@ -2385,8 +2522,8 @@ console.log("EXERCISES",exercises)
 <tr>
   <th className="p-2">STT</th>
   <th>Học sinh</th>
-  <th>📘 GV giao</th>
-  <th>🧠 HS tự sinh</th>
+  <th>📘 Số bài GV giao</th>
+  <th>🧠 Số bài HS tự sinh</th>
   <th>Điểm TB AI</th>
   <th>Điểm TB GV</th>
 </tr>
@@ -2713,8 +2850,14 @@ className={`px-3 py-1 rounded ${
   </div>
 
 ))}
-</div>
 
+</div>
+<button
+  onClick={exportExcelVIP}
+  className="bg-green-600 text-white px-4 py-2 rounded-lg"
+>
+  Xuất Excel
+</button>
 
 {/* ===== CHI TIẾT ===== */}
 <div ref={detailRef}>
@@ -2891,173 +3034,6 @@ ${loadingScore
 </div>
 
 </div>
-
-)}
-
-{tab === "stats" && (
-
-  <div className="p-4 space-y-6">
-
-    {/* ===== KPI ===== */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-      <Card color="indigo" label="Tổng bài" value={stats.total} />
-      <Card color="yellow" label="Lượt nộp" value={stats.submitted} />
-      <Card color="green" label="Đã chấm" value={stats.graded} />
-      <Card 
-        color="red" 
-        label="HS yếu"
-        value={(stats.students || []).filter(s=>s.level==="Yếu").length}
-      />
-
-    </div>
-
-
-    {/* ===== CHART ===== */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-
-
-      {/* PIE */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <h3 className="font-bold mb-3">📊 Phân loại học sinh</h3>
-
-        <Pie
-          data={{
-            labels:["Giỏi","Trung bình","Yếu","Chưa học"],
-            datasets:[{
-              data:[gioi, tb, yeu, chua],
-              backgroundColor:[
-                "#22c55e",
-                "#eab308",
-                "#ef4444",
-                "#9ca3af"
-              ]
-            }]
-          }}
-        />
-      </div>
-
-      {/* LINE */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <h3 className="font-bold mb-3">📈 Tiến độ nộp bài</h3>
-
-        <Line
-          data={{
-            labels:(stats.exercises || []).map((_,i)=>`Bài ${i+1}`),
-            datasets:[{
-              label:"Tỷ lệ nộp (%)",
-              data:(stats.exercises || []).map(e=>e.rate)
-            }]
-          }}
-        />
-      </div>
-
-    </div>
-
-
-    {/* ===== GV vs PRACTICE ===== */}
-    <div className="grid md:grid-cols-2 gap-6">
-
-      {/* GV */}
-      <div className="bg-white p-5 rounded-xl shadow">
-        <h2 className="font-bold mb-3">📘 Bài giáo viên</h2>
-
-        <p>📚 Tổng bài: {stats.teacher?.totalExercises}</p>
-        <p>👨‍🎓 Tổng HS: {stats.teacher?.totalStudents}</p>
-        <p>📤 Lượt nộp: {stats.teacher?.totalSubmissions}</p>
-        <p>🧑‍🏫 GV chấm: {stats.teacher?.teacherGraded}</p>
-        <p>🤖 AI chấm: {stats.teacher?.aiGraded}</p>
-        <p>⏳ Chưa chấm: {stats.teacher?.pending}</p>
-      </div>
-
-      {/* PRACTICE */}
-      <div className="bg-white p-5 rounded-xl shadow">
-        <h2 className="font-bold mb-3">🧠 Bài tự sinh</h2>
-
-        <p>📝 Tổng bài: {stats.practice?.total}</p>
-        <p>👨‍🎓 HS làm: {stats.practice?.students}</p>
-        <p>✅ Đã chấm: {stats.practice?.graded}</p>
-        <p>⏳ Chưa chấm: {stats.practice?.pending}</p>
-      </div>
-
-    </div>
-
-
-    {/* ===== TOP + YẾU ===== */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      {/* TOP */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <h3 className="font-bold mb-2">🏆 Top học sinh</h3>
-
-        {[...(stats.students || [])]
-          .filter(s=>s.avg!=null)
-          .sort((a,b)=>(b.avg||0)-(a.avg||0))
-          .slice(0,5)
-          .map((s,i)=>(
-            <div key={i} className="flex justify-between border-b p-2">
-              #{i+1} {s.name}
-              <span className="text-green-600">
-                {s.avg?.toFixed(1)}
-              </span>
-            </div>
-        ))}
-      </div>
-
-      {/* YẾU */}
-      <div className="bg-white p-4 rounded-xl shadow">
-        <h3 className="font-bold mb-2">⚠️ Cần cải thiện</h3>
-
-        {(stats.students || [])
-          .filter(s=>s.level==="Yếu")
-          .map((s,i)=>(
-            <div key={i} className="flex justify-between border-b p-2">
-              {s.name}
-              <span className="text-red-500">
-                {s.avg?.toFixed(1) ?? "-"}
-              </span>
-            </div>
-        ))}
-      </div>
-
-    </div>
-
-
-    {/* ===== THEO BÀI ===== */}
-    <div className="bg-white p-4 rounded-xl shadow">
-
-  <h3 className="font-bold mb-2">📚 Thống kê theo bài</h3>
-
-  {stats.exercises.map(e => {
-  const rate = e.rate
-
-    return (
-      <div key={e.id} className="mb-3">
-
-        <div className="flex justify-between text-sm">
-          <span>{e.title}</span>
-          <span>{rate}%</span>
-        </div>
-
-        <div className="w-full bg-gray-200 h-2 rounded mt-1">
-          <div
-            className="bg-blue-500 h-2 rounded"
-            style={{ width: `${rate}%` }}
-          />
-        </div>
-
-      </div>
-    )
-  })}
-
-  {(stats.exercises || []).length===0 && (
-    <div className="text-gray-400">Chưa có dữ liệu</div>
-  )}
-
-</div>
-
-  </div>
 
 )}
 
