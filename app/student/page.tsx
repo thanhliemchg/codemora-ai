@@ -443,6 +443,7 @@ UI
 
 return(
 
+
 <div className="flex min-h-screen bg-gray-100">
 
 {/* SIDEBAR */}
@@ -486,9 +487,9 @@ tab==="history"
 
 {/* MAIN */}
 
-<div className="min-h-screen bg-gray-100 text-gray-800 w-full max-w-7x1 ">
 
-<div className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-x1">
+<div className="min-h-screen bg-gray-100 text-gray-800 w-full pb-24">
+<div className="flex justify-between items-center px-3 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
 
 <h1 className="font-bold text-xl text-white">
 🚀 CodeMora AI
@@ -541,7 +542,7 @@ className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
 
 {tab==="dashboard" && (
 
-<div className="grid grid-cols-2 gap-6">
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-3">
 <div className="bg-white p-6 rounded-xl shadow">
 
 <label className="bg-red-600 text-white px-4 py-2 rounded ml-3">
@@ -586,7 +587,9 @@ onChange={(e)=>{
 
 <input type="file" accept=".py,.cpp,.txt" onChange={handleFile} className="mb-4 text-black"/>
 
-<CodeEditor code={code} setCode={setCode} language={language}/>
+<div className="w-full overflow-hidden rounded-xl border">
+  <CodeEditor code={code} setCode={setCode} language={language}/>
+</div>
 
 <div className="flex gap-3 mt-4">
 
@@ -666,11 +669,11 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
                 setSubmitted(false)
               }}
               className={`
-              p-4 rounded-xl border cursor-pointer transition
-              ${teacherExerciseId===ex.id
-                ? "bg-indigo-50 border-indigo-400"
-                : "bg-white hover:bg-gray-50"}
-              `}
+                p-4 rounded-xl border cursor-pointer transition active:scale-[0.98]
+                ${teacherExerciseId===ex.id
+                  ? "bg-blue-50 border-blue-400"
+                  : "bg-white"}
+                `}
             >
 
               <div className="flex justify-between items-center mb-1">
@@ -713,9 +716,11 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
         </div>
 
         {teacherExercise ? (
+         <div className="prose prose-sm max-w-none break-words">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {teacherExercise}
           </ReactMarkdown>
+        </div>
         ) : (
           <div className="text-gray-400 text-sm">
             Chọn bài để xem nội dung
@@ -786,8 +791,8 @@ Tổng bài: {history.length}
 </div>
 
 </div>
-
-<table className="w-full border text-sm text-black">
+{/* DESKTOP VIEW */}
+<table className="hidden lg:table w-full border text-sm text-black">
 
 <thead className="bg-gray-100">
 <tr className="border-t hover:bg-gray-50">
@@ -840,8 +845,34 @@ onClick={()=>setSelectedHistory(h)}
 </tbody>
 
 </table>
+{/* MOBILE VIEW */}
+<div className="lg:hidden space-y-3 mt-4">
 
+{history.map((h:any,i)=>(
+  <div
+    key={h.id}
+    onClick={()=>setSelectedHistory(h)}
+    className="bg-white p-4 rounded-xl shadow border active:scale-[0.98]"
+  >
 
+    <div className="flex justify-between items-center">
+      <div className="font-semibold text-sm">
+        #{i+1} {h.exercise_id ? "📘 GV" : "🧠 AI"}
+      </div>
+
+      <div className="text-xs bg-gray-100 px-2 py-1 rounded">
+        {h.status}
+      </div>
+    </div>
+
+    <div className="mt-2 text-sm text-gray-600">
+      AI: <b>{h.ai_score ?? "-"}</b> | GV: <b>{h.teacher_score ?? "-"}</b>
+    </div>
+
+  </div>
+))}
+
+</div>
 {selectedHistory && (
 
 <div className="mt-6 bg-white rounded-xl shadow-lg border p-6 space-y-6 text-black">
@@ -879,7 +910,7 @@ onClick={()=>setSelectedHistory(h)}
 Code học sinh
 </div>
 
-<pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-auto max-h-[350px] text-sm font-mono border">
+<pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-auto max-h-[300px] text-xs sm:text-sm">
 {selectedHistory.code}
 </pre>
 
@@ -889,7 +920,7 @@ Code học sinh
 
 {/* ===== THÔNG TIN ===== */}
 
-<div className="grid grid-cols-3 gap-4">
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
 
 <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-center">
 
@@ -1093,6 +1124,30 @@ Bài tập tự sinh bằng AI
 
 </div>
 
+<div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 z-50 shadow-lg">
+
+  <button 
+    onClick={()=>changeTab("dashboard")}
+    className={`flex flex-col items-center text-xs ${
+      tab==="dashboard" ? "text-blue-600" : "text-gray-500"
+    }`}
+  >
+    🏠
+    <span>Home</span>
+  </button>
+
+  <button 
+    onClick={()=>changeTab("history")}
+    className={`flex flex-col items-center text-xs ${
+      tab==="history" ? "text-blue-600" : "text-gray-500"
+    }`}
+  >
+    📄
+    <span>Lịch sử</span>
+  </button>
+
 </div>
+</div>
+
 
 )}

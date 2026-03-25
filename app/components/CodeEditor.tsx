@@ -1,23 +1,45 @@
 "use client"
 
-import Editor from "@monaco-editor/react"
+import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 
-export default function CodeEditor({ code, setCode, language }: any){
+// 👉 load Monaco kiểu lazy (QUAN TRỌNG)
+const Editor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false
+})
 
-return(
+export default function CodeEditor({ code, setCode, language }: any) {
 
-<Editor
-height="450px"
-language={language}
-theme="vs-dark"
-value={code}
-onChange={(v)=>setCode(v)}
-options={{
-fontSize:16,
-minimap:{ enabled:false }
-}}
-/>
+  const [isMobile, setIsMobile] = useState(false)
 
-)
+  useEffect(()=>{
+    setIsMobile(window.innerWidth < 768)
+  },[])
 
+  // 👉 MOBILE: dùng textarea (TRÁNH CRASH)
+  if(isMobile){
+    return (
+      <textarea
+    value={code}
+    onChange={(e)=>setCode(e.target.value)}
+    className="w-full h-[250px] p-3 border rounded-xl font-mono text-sm bg-gray-50"
+    placeholder="Nhập code tại đây..."
+    />
+    )
+  }
+
+  // 👉 DESKTOP: dùng Monaco
+  return (
+    <Editor
+      height="400px"
+      language={language}
+      value={code}
+      onChange={(value)=>setCode(value || "")}
+      theme="vs-dark"
+      options={{
+        minimap: { enabled: false },
+        fontSize: 14
+      }}
+    />
+  )
 }
