@@ -1,21 +1,18 @@
 "use client"
 
-import { useState,useEffect, use } from "react"
+import { useState,useEffect } from "react"
 import CodeEditor from "../components/CodeEditor"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import ChangePassword from "../components/ChangePassword"
 import { setTooltipSettingsState } from "recharts/types/state/tooltipSlice"
 import { s, sub } from "framer-motion/client"
-import { useSearchParams, useRouter } from "next/navigation"
 
 export default function Student(){
 const [teacherExercise,setTeacherExercise] = useState("")
 const [teacherExerciseId,setTeacherExerciseId] = useState<string | null>(null)
 const [teacherExercises,setTeacherExercises] = useState<any[]>([])
 const [selectedExercise,setselectedExercise] = useState<any>(null)
-
-
 
 const [submissionId, setSubmissionId] = useState<string | null>(null)
 
@@ -28,10 +25,7 @@ const [exercise,setExercise] = useState("")
 const [loadingAnalyze,setLoadingAnalyze] = useState(false)
 const [loadingExercise,setLoadingExercise] = useState(false)
 
-const searchParams = useSearchParams()
-const router = useRouter()
-const tab = searchParams.get("tab") || "dashboard"
-
+const [tab,setTab] = useState("dashboard")
 
 const [user,setUser] = useState<any>(null)
 const [tests, setTests] = useState<any[]>([])
@@ -61,11 +55,6 @@ const currentTeacherExercise = teacherExercises.find(
 )
 
 const isSubmittedCurrent = currentTeacherExercise?.submitted === true
-
-
-const changeTab = (t:string)=>{
-  router.push(`/student?tab=${t}`)
-}
 /* ======================
 PHÂN TÍCH CODE
 ====================== */
@@ -437,6 +426,8 @@ useEffect(()=>{
 
 },[user?.id]) 
 
+
+
 /* ======================
 UI
 ====================== */
@@ -447,7 +438,7 @@ return(
 
 {/* SIDEBAR */}
 
-<div className="hidden lg:block w-[240px] bg-gradient-to-b from-indigo-500 to-purple-600 text-white p-6 flex flex-col shadow-x1">
+<div className="w-[250px] bg-gradient-to-b from-indigo-500 to-purple-600 text-white p-6 flex flex-col shadow-x1">
 
 <h2 className="text-2xl font-bold mb-10">
 CodeMora AI
@@ -456,7 +447,7 @@ CodeMora AI
 <ul className="space-y-2">
 
 <li
-onClick={()=>changeTab("dashboard")}
+onClick={()=>setTab("dashboard")}
 className={`p-3 rounded-lg cursor-pointer transition whitespace-nowrap ${
 tab==="dashboard"
 ? "bg-white/20 text-white font-semibold"
@@ -467,7 +458,7 @@ tab==="dashboard"
 </li>
 
 <li
-onClick={()=>changeTab("history")}
+onClick={()=>setTab("history")}
 className={`p-3 rounded-lg cursor-pointer transition whitespace-nowrap ${
 tab==="history"
 ? "bg-white/20 text-white font-semibold"
@@ -476,6 +467,18 @@ tab==="history"
 >
 📄 Lịch sử
 </li>
+{/*
+<li
+onClick={()=>setTab("exercise")}
+className={`p-3 rounded-lg cursor-pointer transition whitespace-nowrap ${
+tab==="exercise"
+? "bg-white/20 text-white font-semibold"
+: "hover:bg-white/20"
+}`}
+>
+💬 Bài tập AI
+</li>
+*/}
 </ul>
 
 

@@ -2333,16 +2333,13 @@ Giao bài cho học sinh
 
 {/* ================= TỔNG HỢP ================= */}
 {/*Desktop*/}
-<div className="hidden lg:block bg-white p-4 rounded-xl shadow">
-
-<h3 className="font-bold mb-3">📊 Tổng hợp lớp</h3>
-
+<h3 className="font-bold mb-3">📊 Tổng hợp</h3>
+<div className="hidden lg:block bg-white rounded-xl shadow overflow-hidden">
 <div className="overflow-x-auto">
-<table className="w-full min-w-[700px] text-sm">
-
-<thead className="bg-blue-600 text-white">
+<table className="w-full text-sm min-w-[700px]">
+<thead className="bg-blue-600 text-white sticky top-0">
 <tr>
-  <th className="p-2">#</th>
+  <th className="p-2">STT</th>
   <th>Học sinh</th>
   <th>📘 GV giao</th>
   <th>🧠 HS tự sinh</th>
@@ -2418,8 +2415,6 @@ Giao bài cho học sinh
 </div>
 {/* ================= MOBILE ================= */}
 <div className="lg:hidden space-y-3">
-
-<h3 className="font-bold mb-2">📊 Tổng hợp lớp</h3>
 
 {Object.values(
   submissions.reduce((acc:any, s:any)=>{
@@ -2546,8 +2541,8 @@ className={`px-3 py-1 rounded ${
 
 
 {/* TABLE */}
+<h3 className="font-bold mb-3">📄Chi tiết HS</h3>
 <div className="hidden lg:block bg-white rounded-xl shadow overflow-hidden">
-
   <div className="overflow-x-auto">
     <table className="w-full text-sm min-w-[700px]">
 
