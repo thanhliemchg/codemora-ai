@@ -6,151 +6,154 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET(req: Request){
+export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
-
   const class_id = searchParams.get("class_id")
-  const mode = searchParams.get("mode") // class | all
 
-  /* ================= SUBMISSIONS ================= */
+  if (!class_id) {
+    return NextResponse.json({ error: "missing class_id" })
+  }
 
-  let query = supabase
+  // ===== DATA =====
+  const { data: exercises = [] } = await supabase
+    .from("generated_exercises")
+    .select("*")
+    .eq("class_id", class_id)
+
+  const { data: submissions = [] } = await supabase
     .from("submissions")
     .select("*")
+    .eq("class_id", class_id)
 
-  if(mode==="class"){
-    query = query.eq("class_id", class_id)
+  const { data: students = [] } = await supabase
+    .from("student_accounts")
+    .select("*")
+    .eq("class_id", class_id)
+
+  // =============================
+  // 📘 TEACHER (CHỈ LẤY BÀI GV GIAO)
+  // =============================
+  const teacherSubs = submissions.filter(
+    s => s.type === "teacher"
+  )
+
+  const teacherStats = {
+    totalExercises: exercises.length,
+
+    totalStudents: students.length,
+
+    totalSubmittedStudents: new Set(
+      teacherSubs.map(s => s.student_id)
+    ).size,
+
+    totalSubmissions: teacherSubs.length,
+
+    teacherGraded: teacherSubs.filter(s => s.teacher_score !== null).length,
+
+    aiGraded: teacherSubs.filter(s => s.ai_score !== null).length,
+
+    pending: teacherSubs.filter(s => s.teacher_score === null).length
   }
 
-  const { data: subs } = await query
+  // =============================
+  // 🧠 PRACTICE
+  // =============================
+  const practiceSubs = submissions.filter(
+    s => s.type === "practice"
+  )
 
-  /* ================= USERS (CHỈ HS) ================= */
+  const practiceStats = {
+    total: practiceSubs.length,
 
-  let usersQuery = supabase
-    .from("users")
-    .select("id,name,role")
-    .eq("role","student")
+    students: new Set(
+      practiceSubs.map(s => s.student_id)
+    ).size,
 
-  if(mode==="class"){
-    const { data: classStudents } = await supabase
-      .from("class_students")
-      .select("student_id")
-      .eq("class_id", class_id)
+    graded: practiceSubs.filter(s => s.ai_score !== null).length,
 
-    const ids = classStudents?.map(s=>s.student_id) || []
-
-    usersQuery = usersQuery.in("id", ids)
+    pending: practiceSubs.filter(s => s.ai_score === null).length
   }
 
-  const { data: users } = await usersQuery
+  // =============================
+  // 👨‍🎓 STUDENTS
+  // =============================
+  const studentStats = students.map(st => {
 
-  /* ================= MAP HS ================= */
+    const subs = teacherSubs.filter(s => s.student_id === st.id)
 
-  const map:any = {}
+    const scores = subs
+      .map(s => s.teacher_score)
+      .filter(s => s !== null)
 
-  users?.forEach(u=>{
-    map[u.id] = {
-      name: u.name,
-      total: 0,
-      submitted: 0,
-      scoreSum: 0,
-      count: 0
-    }
-  })
-
-  subs?.forEach(s=>{
-    if(!map[s.student_id]) return
-
-    map[s.student_id].total++
-
-    if(s.status==="submitted"){
-      map[s.student_id].submitted++
-    }
-
-    if(s.score !== null){
-      map[s.student_id].scoreSum += s.score
-      map[s.student_id].count++
-    }
-  })
-
-  /* ================= STUDENTS ================= */
-
-  const students = Object.entries(map).map(([id,v]:any)=>{
-
-    const avg = v.count ? v.scoreSum / v.count : null
+    const avg = scores.length
+      ? scores.reduce((a, b) => a + b, 0) / scores.length
+      : null
 
     let level = "Chưa học"
 
-    if(avg !== null){
-      if(avg >= 8) level = "Giỏi"
-      else if(avg >= 5) level = "Trung bình"
+    if (avg !== null) {
+      if (avg >= 8) level = "Giỏi"
+      else if (avg >= 5) level = "Trung bình"
       else level = "Yếu"
     }
 
     return {
-      id,
-      name: v.name,
-      total: v.total,
-      submitted: v.submitted,
-      avg: avg ? Number(avg.toFixed(1)) : null,
+      id: st.id,
+      name: st.name,
+      avg,
       level
     }
   })
 
-  /* ================= EXERCISES ================= */
+  // =============================
+  // 📊 THEO BÀI 
+  // =============================
+  const exerciseStats = exercises.map(ex => {
 
-  const { data: exerciseList } = await supabase
-    .from("generated_exercises")
-    .select("id, exercise")
+    // 🔥 lọc đúng bài + đúng loại
+    const subs = teacherSubs.filter(
+      s => s.exercise_id === ex.id
+    )
 
-  const exerciseNameMap:any = {}
+    // 🔥 loại duplicate student
+    const uniqueStudentIds = Array.from(
+      new Set(subs.map(s => s.student_id))
+      )
 
-  exerciseList?.forEach(e=>{
-    exerciseNameMap[e.id] = e.exercise
-  })
+    const submittedRaw = uniqueStudentIds.length
+    const total = students.length
 
-  const exerciseMap:any = {}
+    // 🔥 CHỐNG LỖI >100%
+    const submitted = Math.min(submittedRaw, total)
 
-  subs?.forEach(s=>{
-    if(!s.exercise_id) return
-
-    if(!exerciseMap[s.exercise_id]){
-      exerciseMap[s.exercise_id] = { total:0, submitted:0 }
-    }
-
-    exerciseMap[s.exercise_id].total++
-
-    if(s.status==="submitted"){
-      exerciseMap[s.exercise_id].submitted++
-    }
-  })
-
-  const exercises = Object.entries(exerciseMap).map(([id,v]:any)=>{
-
-    const raw = exerciseNameMap[id] || ""
-
-    const title = raw
-      ?.replace(/[#*]/g,"")
-      ?.split("\n")[0]
-      ?.slice(0,60)
+    const rate = total
+      ? Math.round((submitted / total) * 100)
+      : 0
 
     return {
-      id,
-      title: title || "Bài tập",
-      total: v.total,
-      submitted: v.submitted,
-      rate: v.total ? Math.round((v.submitted / v.total) * 100) : 0
+      id: ex.id,
+      title: ex.exercise_text?.split("\n")[0] || "Bài tập",
+      total,
+      submitted,
+      rate
     }
   })
 
-  /* ================= RETURN ================= */
-
+  // =============================
+  // 📊 KPI
+  // =============================
   return NextResponse.json({
-    total: subs?.length || 0,
-    submitted: subs?.filter(s=>s.status==="submitted").length || 0,
-    graded: subs?.filter(s=>s.score !== null).length || 0,
-    students,
-    exercises
+    total: exercises.length,
+
+    submitted: teacherSubs.length,
+
+    graded: teacherSubs.filter(s => s.teacher_score !== null).length,
+
+    teacher: teacherStats,
+    practice: practiceStats,
+
+    students: studentStats,
+    exercises: exerciseStats
   })
 }

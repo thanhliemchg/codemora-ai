@@ -138,8 +138,36 @@ const [editContent, setEditContent] = useState("")
 const [sendAll,setSendAll] = useState(false)
 const [search,setSearch] = useState("")
 
-const [stats,setStats] = useState<any>(null)
+const [stats, setStats] = useState<any>({
+  total: 0,
+  submitted: 0,
+  graded: 0,
+  students: [],
+  exercises: [],
+  teacher: {
+    totalExercises: 0,
+    totalAssigned: 0,
+    totalSubmitted: 0,
+    totalGraded: 0,
+    totalPending: 0
+  },
+  practice: {
+    totalPractice: 0,
+    totalStudents: 0,
+    graded: 0,
+    pending: 0,
+    weakStudents: 0,
+    avgScore: 0
+  }
+})
 const [statMode,setStatMode] = useState("class")
+
+const statStudents = stats.students || []
+
+const gioi = statStudents.filter(s=>s.level==="Giỏi").length
+const tb = statStudents.filter(s=>s.level==="Trung bình").length
+const yeu = statStudents.filter(s=>s.level==="Yếu").length
+const chua = statStudents.filter(s=>!s.level || s.level==="Chưa học").length
 
 useEffect(()=>{
   if(tab==="stats"){
@@ -1065,6 +1093,21 @@ const allStudents = (() => {
   return Array.from(map.values())
 })()
 
+function Card({ label, value, color }: any) {
+  const map: any = {
+    indigo: "bg-indigo-600",
+    yellow: "bg-yellow-500",
+    green: "bg-green-600",
+    red: "bg-red-500",
+  }
+
+  return (
+    <div className={`${map[color]} text-white p-4 rounded-xl shadow`}>
+      <div className="text-sm opacity-80">{label}</div>
+      <div className="text-2xl font-bold">{value}</div>
+    </div>
+  )
+}
 
 return(
 
@@ -2851,217 +2894,174 @@ ${loadingScore
 
 )}
 
-{tab==="stats" && stats && (
+{tab === "stats" && (
 
-<div className="space-y-6">
+  <div className="p-4 space-y-6">
 
-{/* ===== HEADER ===== */}
-<div className="flex justify-between items-center">
+    {/* ===== KPI ===== */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-<div className="flex flex-wrap gap-2">
-<button 
-onClick={()=>setStatMode("class")}
-className={`px-3 py-1 rounded ${statMode==="class"?"bg-blue-600 text-white":"bg-gray-200"}`}
->
-📘 Theo lớp
-</button>
+      <Card color="indigo" label="Tổng bài" value={stats.total} />
+      <Card color="yellow" label="Lượt nộp" value={stats.submitted} />
+      <Card color="green" label="Đã chấm" value={stats.graded} />
+      <Card 
+        color="red" 
+        label="HS yếu"
+        value={(stats.students || []).filter(s=>s.level==="Yếu").length}
+      />
 
-<button 
-onClick={()=>setStatMode("all")}
-className={`px-3 py-1 rounded ${statMode==="all"?"bg-purple-600 text-white":"bg-gray-200"}`}
->
-🌍 Toàn hệ thống
-</button>
-</div>
-
-</div>
-
-{/* ===== KPI ===== */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-<div className="bg-indigo-500 text-white p-4 rounded-xl text-center">
-<div>Tổng bài</div>
-<div className="text-2xl font-bold">{stats.total}</div>
-</div>
-
-<div className="bg-yellow-500 text-white p-4 rounded-xl text-center">
-<div>Đã nộp</div>
-<div className="text-2xl font-bold">{stats.submitted}</div>
-</div>
-
-<div className="bg-green-500 text-white p-4 rounded-xl text-center">
-<div>Đã chấm</div>
-<div className="text-2xl font-bold">{stats.graded}</div>
-</div>
-
-<div className="bg-red-500 text-white p-4 rounded-xl text-center">
-<div>HS yếu</div>
-<div className="text-2xl font-bold">
-{stats.students.filter(s=>s.level==="Yếu").length}
-</div>
-</div>
-
-</div>
-
-{/* ===== CHART ===== */}
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-{/* PIE */}
-<div className="bg-white p-4 rounded-xl shadow">
-<h3 className="font-bold mb-3">📊 Phân loại học sinh</h3>
-
-<Pie
-data={{
-labels:["Giỏi","Trung bình","Yếu","Chưa học"],
-datasets:[{
-data:[
-stats.students.filter(s=>s.level==="Giỏi").length,
-stats.students.filter(s=>s.level==="Trung bình").length,
-stats.students.filter(s=>s.level==="Yếu").length,
-stats.students.filter(s=>s.level==="Chưa học").length
-]
-}]
-}}
-/>
-
-</div>
-
-{/* LINE */}
-<div className="bg-white p-4 rounded-xl shadow">
-<h3 className="font-bold mb-3">📈 Tiến độ nộp bài</h3>
-
-<Line
-data={{
-labels: stats.exercises.map((_,i)=>`Bài ${i+1}`),
-datasets:[{
-label:"Tỷ lệ nộp (%)",
-data: stats.exercises.map(e=>e.rate)
-}]
-}}
-/>
-
-</div>
-
-</div>
-
-{/* ===== ALERT ===== */}
-<div className="bg-red-50 p-4 rounded-xl">
-
-<h3 className="font-bold text-red-600 mb-2">
-🚨 Học sinh yếu
-</h3>
-
-{stats.students
-.filter(s=>s.level==="Yếu")
-.map((s:any)=>(
-<div key={s.id} className="flex justify-between border-b p-2">
-{s.name}
-<span className="text-red-500">{s.avg ?? "—"}</span>
-</div>
-))}
-
-</div>
-
-{/* ===== CHƯA HỌC ===== */}
-<div className="bg-gray-100 p-4 rounded-xl">
-
-<h3 className="font-bold mb-2">
-📌 Chưa học / chưa nộp
-</h3>
-
-{stats.students
-.filter(s=>s.level==="Chưa học")
-.map((s:any)=>(
-<div key={s.id} className="border-b p-2">
-{s.name}
-</div>
-))}
-
-</div>
-
-{/* ===== RANKING ===== */}
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-{/* TOP */}
-<div className="bg-white p-4 rounded-xl shadow">
-
-<h3 className="font-bold mb-2">🏆 Top học sinh</h3>
-
-{[...stats.students]
-.filter(s=>s.avg !== null)
-.sort((a,b)=>b.avg-a.avg)
-.slice(0,5)
-.map((s:any,i)=>(
-<div key={i} className="flex justify-between border-b p-2">
-#{i+1} {s.name}
-<span className="text-green-600">{s.avg}</span>
-</div>
-))}
-
-</div>
-
-{/* BOTTOM */}
-<div className="bg-white p-4 rounded-xl shadow">
-
-<h3 className="font-bold mb-2">⚠️ Cần cải thiện</h3>
-
-{[...stats.students]
-.filter(s=>s.avg !== null)
-.sort((a,b)=>a.avg-b.avg)
-.slice(0,5)
-.map((s:any,i)=>(
-<div key={i} className="flex justify-between border-b p-2">
-{s.name}
-<span className="text-red-500">{s.avg}</span>
-</div>
-))}
-
-</div>
-
-</div>
-
-{/* ===== THEO BÀI ===== */}
-<div className="bg-white p-4 rounded-xl shadow">
-
-<h3 className="font-bold mb-2">📚 Thống kê theo bài</h3>
-
-{stats.exercises.map((e:any)=>(
-<div key={e.id} className="flex justify-between border-b p-2">
-
-  <div className="max-w-[60%]">
-    <div className="font-medium">
-      📘 {e.title}
     </div>
-  </div>
 
-  <div className="flex gap-3 text-sm">
 
-    <span className="text-gray-500">
-      {e.total} HS
-    </span>
+    {/* ===== CHART ===== */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-    <span className="text-blue-600 font-semibold">
-      {e.rate}% nộp
-    </span>
 
-  </div>
+
+      {/* PIE */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h3 className="font-bold mb-3">📊 Phân loại học sinh</h3>
+
+        <Pie
+          data={{
+            labels:["Giỏi","Trung bình","Yếu","Chưa học"],
+            datasets:[{
+              data:[gioi, tb, yeu, chua],
+              backgroundColor:[
+                "#22c55e",
+                "#eab308",
+                "#ef4444",
+                "#9ca3af"
+              ]
+            }]
+          }}
+        />
+      </div>
+
+      {/* LINE */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h3 className="font-bold mb-3">📈 Tiến độ nộp bài</h3>
+
+        <Line
+          data={{
+            labels:(stats.exercises || []).map((_,i)=>`Bài ${i+1}`),
+            datasets:[{
+              label:"Tỷ lệ nộp (%)",
+              data:(stats.exercises || []).map(e=>e.rate)
+            }]
+          }}
+        />
+      </div>
+
+    </div>
+
+
+    {/* ===== GV vs PRACTICE ===== */}
+    <div className="grid md:grid-cols-2 gap-6">
+
+      {/* GV */}
+      <div className="bg-white p-5 rounded-xl shadow">
+        <h2 className="font-bold mb-3">📘 Bài giáo viên</h2>
+
+        <p>📚 Tổng bài: {stats.teacher?.totalExercises}</p>
+        <p>👨‍🎓 Tổng HS: {stats.teacher?.totalStudents}</p>
+        <p>📤 Lượt nộp: {stats.teacher?.totalSubmissions}</p>
+        <p>🧑‍🏫 GV chấm: {stats.teacher?.teacherGraded}</p>
+        <p>🤖 AI chấm: {stats.teacher?.aiGraded}</p>
+        <p>⏳ Chưa chấm: {stats.teacher?.pending}</p>
+      </div>
+
+      {/* PRACTICE */}
+      <div className="bg-white p-5 rounded-xl shadow">
+        <h2 className="font-bold mb-3">🧠 Bài tự sinh</h2>
+
+        <p>📝 Tổng bài: {stats.practice?.total}</p>
+        <p>👨‍🎓 HS làm: {stats.practice?.students}</p>
+        <p>✅ Đã chấm: {stats.practice?.graded}</p>
+        <p>⏳ Chưa chấm: {stats.practice?.pending}</p>
+      </div>
+
+    </div>
+
+
+    {/* ===== TOP + YẾU ===== */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      {/* TOP */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h3 className="font-bold mb-2">🏆 Top học sinh</h3>
+
+        {[...(stats.students || [])]
+          .filter(s=>s.avg!=null)
+          .sort((a,b)=>(b.avg||0)-(a.avg||0))
+          .slice(0,5)
+          .map((s,i)=>(
+            <div key={i} className="flex justify-between border-b p-2">
+              #{i+1} {s.name}
+              <span className="text-green-600">
+                {s.avg?.toFixed(1)}
+              </span>
+            </div>
+        ))}
+      </div>
+
+      {/* YẾU */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h3 className="font-bold mb-2">⚠️ Cần cải thiện</h3>
+
+        {(stats.students || [])
+          .filter(s=>s.level==="Yếu")
+          .map((s,i)=>(
+            <div key={i} className="flex justify-between border-b p-2">
+              {s.name}
+              <span className="text-red-500">
+                {s.avg?.toFixed(1) ?? "-"}
+              </span>
+            </div>
+        ))}
+      </div>
+
+    </div>
+
+
+    {/* ===== THEO BÀI ===== */}
+    <div className="bg-white p-4 rounded-xl shadow">
+
+  <h3 className="font-bold mb-2">📚 Thống kê theo bài</h3>
+
+  {stats.exercises.map(e => {
+  const rate = e.rate
+
+    return (
+      <div key={e.id} className="mb-3">
+
+        <div className="flex justify-between text-sm">
+          <span>{e.title}</span>
+          <span>{rate}%</span>
+        </div>
+
+        <div className="w-full bg-gray-200 h-2 rounded mt-1">
+          <div
+            className="bg-blue-500 h-2 rounded"
+            style={{ width: `${rate}%` }}
+          />
+        </div>
+
+      </div>
+    )
+  })}
+
+  {(stats.exercises || []).length===0 && (
+    <div className="text-gray-400">Chưa có dữ liệu</div>
+  )}
 
 </div>
-))}
 
-{stats.exercises.length===0 && (
-<div className="text-gray-400">Chưa có dữ liệu</div>
+  </div>
+
 )}
 
 </div>
-
-</div>
-)}
-
-
-
 </div>
 </div>
-</div>
-
 )}
