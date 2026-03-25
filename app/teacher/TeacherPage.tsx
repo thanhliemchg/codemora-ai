@@ -46,7 +46,9 @@ const router = useRouter()
 const searchParams = useSearchParams()
 const tabQuery = searchParams.get("tab")
 const classId = searchParams.get("class")
-const tab = searchParams.get("tab") || "classes"
+
+const rawtab = searchParams.get("tab")
+const tab = rawtab || "classes"
 const [action, setAction] = useState("");
 const [selectedStudents,setSelectedStudents] = useState<string[]>([])
 const [view,setView] = useState("all")
@@ -138,10 +140,6 @@ const [search,setSearch] = useState("")
 
 const [stats,setStats] = useState<any>(null)
 const [statMode,setStatMode] = useState("class")
-
-useEffect(()=>{
-  localStorage.setItem("tab", tab)
-},[tab])
 
 useEffect(()=>{
   if(tab==="stats"){
@@ -495,7 +493,7 @@ return
 setSelectedClass(class_id)
 setSelectedClassName(name)
 
-changeTab("students")
+//changeTab("students")
 
 const pendingRes = await fetch(`/api/pending-students?class_id=${class_id}`)
 const pending = await pendingRes.json()
@@ -929,7 +927,7 @@ async function loadExercises(class_id:any,name:any){
 setSelectedClass(class_id)
 setSelectedClassName(name)
 
-changeTab("exercise")
+//changeTab("exercise")
 
 const res = await fetch(`/api/class-generated-exercises?class_id=${class_id}`)
 const data = await res.json()
@@ -1065,6 +1063,7 @@ const allStudents = (() => {
 
   return Array.from(map.values())
 })()
+
 
 return(
 

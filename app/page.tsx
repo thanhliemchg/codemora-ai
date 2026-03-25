@@ -5,11 +5,11 @@ return(
 <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
 
 <h1 className="text-4xl font-bold mb-6">
-CodeMora AI
+🚀 CodeMora AI
 </h1>
 
 <p className="mb-8 opacity-90">
-Hệ thống hỗ trợ học lập trình bằng AI
+Hệ thống hỗ trợ dạy và học lập trình bằng AI
 </p>
 
 <div className="flex gap-4">

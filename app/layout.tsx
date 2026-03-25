@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "CodeMora AI",
-  description: "AI Coding Classroom Platform"
+  description: "Hệ thống hỗ trợ dạy và học lập trình bằng AI"
 }
 
 export default function RootLayout({ children }: any) {
