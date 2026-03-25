@@ -10,7 +10,7 @@ return(
       🚀 CodeMora AI
     </h1>
 
-<p className="mb-8 opacity-90">
+<p className="mb-8 text-white opacity-90">
 Hệ thống hỗ trợ dạy và học lập trình bằng AI
 </p>
 

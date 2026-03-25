@@ -936,7 +936,7 @@ setExercises(data)
 if (data.length > 0) {
   setSelectedExercise(data[0])
 }
-
+console.log("EXERCISES DATA:", data)
 }
 
 async function createExercise(){
@@ -974,6 +974,7 @@ changeTab("exercise")
 
 alert("Lỗi giao bài")
 }
+setShowModal(false)
 
 }
 async function generateAI() {
@@ -2017,7 +2018,7 @@ Giao bài cho học sinh
 
 <td className="p-3 text-sm text-center">
 
-{totalStudents || "-"}
+{e.student_count || "-"}
 
 </td>
 
@@ -2141,7 +2142,7 @@ Giao bài cho học sinh
     ?.replace(/[#*]/g,"")
     ?.split("\n")[0]
     ?.slice(0,60)
-
+console.log("EXERCISES",exercises)
   return(
     <div
       key={ex.id}
