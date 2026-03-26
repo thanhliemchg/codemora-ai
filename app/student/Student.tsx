@@ -450,9 +450,16 @@ return(
 
 <div className="hidden lg:block w-[240px] bg-gradient-to-b from-indigo-500 to-purple-600 text-white p-6 flex flex-col shadow-x1">
 
-<h2 className="text-2xl font-bold mb-10">
-CodeMora AI
-</h2>
+<div className="flex items-center gap-3 px-2">
+  <img 
+    src="/logo.png" 
+    alt="logo" 
+    className="w-5 h-5 rounded-xl shadow-md"
+  />
+  <span className="font-bold py-3 text-white">
+    CodeMora AI
+  </span>
+</div>
 
 <ul className="space-y-2">
 
@@ -491,9 +498,16 @@ tab==="history"
 <div className="min-h-screen bg-gray-100 text-gray-800 w-full pb-24">
 <div className="flex justify-between items-center px-3 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
 
-<h1 className="font-bold text-xl text-white">
-🚀 CodeMora AI
-</h1>
+<div className="flex items-center gap-3 px-2">
+  <img 
+    src="/logo.png" 
+    alt="logo" 
+    className="w-10 h-10 rounded-xl shadow-md"
+  />
+  <span className="font-bold text-2xl text-white">
+    CodeMora AI
+  </span>
+</div>
 
 <div className="flex items-center">
 

@@ -91,9 +91,16 @@ return(
 
 <div className="backdrop-blur-lg bg-white/10 border border-white/20 p-10 rounded-2xl shadow-xl w-[420px]">
 
-<h1 className="text-white text-3xl font-bold text-center mb-6">
-CodeMora AI
-</h1>
+<div className="flex items-center gap-3 px-14">
+  <img 
+    src="/logo.png" 
+    alt="logo" 
+    className="w-9 h-9 items-center rounded-xl shadow-md"
+  />
+  <span className="font-bold text-center text-2xl text-white ">
+    CodeMora AI
+  </span>
+</div>
 
 <p className="text-gray-200 text-center mb-8">
 Tạo tài khoản mới

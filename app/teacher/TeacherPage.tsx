@@ -1270,9 +1270,16 @@ return(
 
 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-3 sm:py-4 py-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow">
 
-<h1 className="font-bold text-2xl text-white">
-🚀 CodeMora AI
-</h1>
+<div className="flex items-center gap-3 px-2">
+  <img 
+    src="/logo.png" 
+    alt="logo" 
+    className="w-10 h-10 rounded-xl shadow-md"
+  />
+  <span className="font-bold text-2xl text-white">
+    CodeMora AI
+  </span>
+</div>
 
 <div className="flex items-center">
 
@@ -1364,9 +1371,19 @@ Lưu
 
 <div className="w-full lg:w-[240px] bg-white border-r shadow-sm p-3 lg:p-5">
 
-  <h2 className="font-bold mb-6 text-blue-600 text-lg">
-    🚀 CodeMora AI
-  </h2>
+  
+  <div className="flex items-center gap-3 px-2">
+  <img 
+    src="/logo.png" 
+    alt="logo" 
+    className="w-9 h-9 items-center rounded-xl shadow-md"
+  />
+  <span className="text-blue font-bold text-center text-lg">
+    CodeMora AI
+  </span>
+</div>
+  
+ 
 
   <ul className="space-y-2 text-sm">
 

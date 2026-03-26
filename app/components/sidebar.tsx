@@ -34,7 +34,7 @@ export default function Sidebar() {
       `}
       >
         <div className="p-4 font-bold text-purple-600 text-lg border-b">
-          CodeMora
+          🚀 CodeMora AI 
         </div>
 
         <div className="p-3 space-y-1 text-sm">
@@ -43,7 +43,6 @@ export default function Sidebar() {
           <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Giao bài tập</div>
           <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Bài nộp</div>
           <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Phát hiện copy</div>
-          <div className="p-2 rounded hover:bg-gray-100 cursor-pointer">Thống kê</div>
         </div>
       </div>
     </>

@@ -52,9 +52,16 @@ return(
 
 <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-8">
 
-<h1 className="text-3xl font-bold text-white text-center mb-2">
-CodeMora AI
-</h1>
+<div className="flex items-center gap-3 px-20">
+  <img 
+    src="/logo.png" 
+    alt="logo" 
+    className="w-9 h-9 items-center rounded-xl shadow-md"
+  />
+  <span className="font-bold text-center text-2xl text-white ">
+    CodeMora AI
+  </span>
+</div>
 
 <p className="text-gray-200 text-center mb-8">
 Đăng nhập hệ thống

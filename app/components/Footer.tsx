@@ -17,12 +17,19 @@ export default function Footer() {
 
         {/* BRAND */}
         <div>
-          <h2 className="text-2xl font-bold mb-3 flex items-center gap-2">
-            🚀 CodeMora AI
-          </h2>
+          <div className="flex items-center gap-3 px-2">
+          <img 
+            src="/logo.png" 
+            alt="logo" 
+            className="w-9 h-9 rounded-xl shadow-md"
+          />
+          <span className="font-bold text-xl text-white">
+            CodeMora AI
+          </span>
+        </div>
 
           <p className="text-sm text-white/80 leading-relaxed">
-            Nền tảng hỗ trợ học tập lập trình bằng AI, giúp giáo viên tiết kiệm thời gian chấm điểm và phát hiện đạo văn, đồng thời cung cấp phản hồi chi tiết để học sinh cải thiện kỹ năng lập trình.
+            Nền tảng hỗ trợ dạy và học lập trình bằng trí tuệ nhân tạo, giúp giáo viên tiết kiệm thời gian chấm điểm và phát hiện sao chép code, đồng thời cung cấp phản hồi chi tiết để học sinh cải thiện kỹ năng lập trình.
           </p>
 
           <div className="flex gap-3 mt-4">
@@ -40,7 +47,6 @@ export default function Footer() {
             <FooterLink text="Giao bài tập" />
             <FooterLink text="Bài nộp" />
             <FooterLink text="Phát hiện copy" />
-            <FooterLink text="Thống kê" />
           </ul>
         </div>
 
@@ -49,7 +55,7 @@ export default function Footer() {
           <h3 className="font-semibold mb-3">⚡ Tính năng</h3>
           <ul className="space-y-2 text-sm text-white/80">
            <FooterLink text="Chấm điểm tự động" />
-            <FooterLink text="Phát hiện đạo văn" />
+            <FooterLink text="Phát hiện sao chép mã nguồn" />
             <FooterLink text="Phân tích code" />
             <FooterLink text="Sinh đề tự động" />
             <FooterLink text="Sinh test tự động" />
