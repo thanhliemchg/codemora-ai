@@ -9,7 +9,6 @@ import { useRef } from "react"
 import mammoth from "mammoth"
 import TurndownService from "turndown"
 import Header from "../components/header"
-import ChangePassword from "../components/ChangePassword"
 import TestEditor from "../components/TestEditor"
 import { b, tr } from "framer-motion/client"
 import LayoutContainer from "../components/LayoutContainer"
@@ -1268,61 +1267,7 @@ return(
 
 <div className="bg-gray-100 min-h-screen text-gray-800">
 
-<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center px-3 sm:py-4 py-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow">
-
-<div className="flex items-center gap-3 px-2">
-  <img 
-    src="/logo.png" 
-    alt="logo" 
-    className="w-10 h-10 rounded-xl shadow-md"
-  />
-  <span className="font-bold text-2xl text-white">
-    CodeMora AI
-  </span>
-</div>
-
-<div className="flex items-center">
-
-<span
-onClick={()=>setShowPassword(true)}
-className="mr-4 bg-gray/20 text-blue px-3 py-1 rounded-full text-sm font-semibold cursor-pointer"
->
-👤 {user?.name}
-</span>
-
-<button
-onClick={()=>{
-localStorage.removeItem("user")
-window.location.href="/login"
-}}
-className="bg-red-600 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
->
-Đăng xuất
-</button>
-
-</div>
-
-</div>
-{/* ===== MODAL ĐỔI MẬT KHẨU ===== */}
-{showPassword && (
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-<div className="bg-white p-4 sm:p-6 rounded-xl w-[95%] max-w-md">
-
-<ChangePassword/>
-
-<button
-onClick={()=>setShowPassword(false)}
-className="mt-3 bg-green-600 px-3 py-1 rounded w-full"
->
-Đóng
-</button>
-
-</div>
-
-</div>
-)}
-
+<Header user={user} />
 {editingStudent && (
 
 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

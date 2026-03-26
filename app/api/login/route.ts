@@ -11,33 +11,46 @@ export async function POST(req: NextRequest) {
 
   try {
 
-    const body = await req.json()
-    const email = body.email
-    const password = body.password
+    let { email, password } = await req.json()
 
+    // ===== NORMALIZE EMAIL =====
+    email = email?.trim().toLowerCase()
+
+    if(!email || !password){
+      return NextResponse.json({
+        success:false,
+        message:"Thiếu email hoặc mật khẩu"
+      })
+    }
+
+    // ===== LẤY USER (KHÔNG PHÂN BIỆT HOA THƯỜNG) =====
     const { data: user, error } = await supabase
       .from("users")
       .select("*")
-      .eq("email", email)
-      .single()
-// 🔥 CHẶN TÀI KHOẢN CHƯA KÍCH HOẠT
-    if (user.status === "pending") {
-      return NextResponse.json({
-        error: "⏳ Tài khoản đang chờ kích hoạt"
-      }, { status: 403 })
-    }
+      .ilike("email", email) // 🔥 FIX QUAN TRỌNG
+      .maybeSingle()
 
-    // 🔥 CHẶN TÀI KHOẢN BỊ KHÓA
-    if (user.status === "blocked") {
-      return NextResponse.json({
-        error: "🚫 Tài khoản đã bị khóa"
-      }, { status: 403 })
-    }
     // ❌ EMAIL KHÔNG TỒN TẠI
     if (error || !user) {
       return NextResponse.json({
-        error: "Email không tồn tại"
+        success:false,
+        message:"Email không tồn tại"
       })
+    }
+
+    // 🔥 CHẶN TRẠNG THÁI
+    if (user.status === "pending") {
+      return NextResponse.json({
+        success:false,
+        message:"⏳ Tài khoản đang chờ kích hoạt"
+      }, { status: 403 })
+    }
+
+    if (user.status === "blocked") {
+      return NextResponse.json({
+        success:false,
+        message:"🚫 Tài khoản đã bị khóa"
+      }, { status: 403 })
     }
 
     // ❌ SAI MẬT KHẨU
@@ -45,16 +58,16 @@ export async function POST(req: NextRequest) {
 
     if (!valid) {
       return NextResponse.json({
-        error: "Sai mật khẩu"
+        success:false,
+        message:"Sai mật khẩu"
       })
     }
 
-    
-
-    // ❌ TRẠNG THÁI KHÁC (PHÒNG HỜ)
+    // ❌ PHÒNG HỜ
     if (user.status !== "active") {
       return NextResponse.json({
-        error: "Tài khoản không hợp lệ"
+        success:false,
+        message:"Tài khoản không hợp lệ"
       }, { status: 403 })
     }
 
@@ -64,7 +77,8 @@ export async function POST(req: NextRequest) {
       user: {
         id: user.id,
         name: user.name,
-        role: user.role
+        role: user.role,
+        must_change_password: user.must_change_password || false
       }
     })
 
@@ -73,7 +87,8 @@ export async function POST(req: NextRequest) {
     console.log(err)
 
     return NextResponse.json({
-      error: "Lỗi server"
+      success:false,
+      message:"Lỗi server"
     }, { status: 500 })
 
   }

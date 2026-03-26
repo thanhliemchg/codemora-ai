@@ -6,138 +6,148 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 
 export default function Login(){
 
-const router = useRouter()
+  const router = useRouter()
 
-const [email,setEmail] = useState("")
-const [password,setPassword] = useState("")
-const [showPassword,setShowPassword] = useState(false)
+  const [email,setEmail] = useState("")
+  const [password,setPassword] = useState("")
+  const [showPassword,setShowPassword] = useState(false)
+  const [loading,setLoading] = useState(false)
 
-async function login(){
+  async function handleLogin(e:any){
+    e.preventDefault() // 🔥 bắt enter
 
-const res = await fetch("/api/login",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({email,password})
-})
+    if(loading) return
 
-const data = await res.json()
+    setLoading(true)
 
-if(data.user){
+    try{
+      const res = await fetch("/api/login",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({email,password})
+      })
 
-localStorage.setItem("user",JSON.stringify(data.user))
+      const data = await res.json()
 
-if(data.user.role==="admin"){
-router.push("/admin")
-}
+      if(data.user){
 
-if(data.user.role==="teacher"){
-router.push("/teacher")
-}
+        localStorage.setItem("user",JSON.stringify(data.user))
 
-if(data.user.role==="student"){
-router.push("/student")
-}
+        if(data.user.role==="admin"){
+          router.push("/admin")
+        }
 
-}else{
-alert("Sai email hoặc mật khẩu")
-}
+        if(data.user.role==="teacher"){
+          router.push("/teacher")
+        }
 
-}
+        if(data.user.role==="student"){
+          router.push("/student")
+        }
 
-return(
+      }else{
+        alert("Sai email hoặc mật khẩu ❌")
+      }
 
-<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-6">
+    }catch(err){
+      alert("Lỗi đăng nhập ❌")
+    }
+
+    setLoading(false)
+  }
+
+  return(
+
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600 p-6">
 
 <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-8">
 
-<div className="flex items-center gap-3 px-20">
+<div className="flex items-center gap-3 px-12">
   <img 
     src="/logo.png" 
     alt="logo" 
     className="w-9 h-9 items-center rounded-xl shadow-md"
   />
-  <span className="font-bold text-center text-2xl text-white ">
+  <span className="text-lg sm:text-xl md:text-3xl font-bold text-white ">
     CodeMora AI
   </span>
 </div>
 
-<p className="text-gray-200 text-center mb-8">
-Đăng nhập hệ thống
-</p>
+      <p className="text-gray-200 text-center mb-6">
+        Đăng nhập hệ thống
+      </p>
 
-{/* EMAIL */}
+      {/* 🔥 FORM */}
+      <form onSubmit={handleLogin}>
 
-<div className="relative mb-4">
+        {/* EMAIL */}
+        <div className="relative mb-4">
+          <Mail className="absolute left-3 top-3 text-gray-300" size={18}/>
 
-<Mail className="absolute left-3 top-3 text-gray-300" size={18}/>
+          <input
+            type="email"
+            required
+            placeholder="Email"
+            value={email}
+            onChange={e=>setEmail(e.target.value)}
+            className="w-full pl-10 pr-3 p-3 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
 
-<input
-type="email"
-placeholder="Email"
-className="w-full pl-10 pr-3 p-3 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-onChange={e=>setEmail(e.target.value)}
-/>
+        {/* PASSWORD */}
+        <div className="relative mb-6">
+          <Lock className="absolute left-3 top-3 text-gray-300" size={18}/>
 
-</div>
+          <input
+            type={showPassword?"text":"password"}
+            required
+            placeholder="Mật khẩu"
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
+            className="w-full pl-10 pr-10 p-3 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
 
-{/* PASSWORD */}
+          <button
+            type="button"
+            className="absolute right-3 top-3 text-gray-300"
+            onClick={()=>setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+          </button>
+        </div>
 
-<div className="relative mb-6">
+        {/* BUTTON LOGIN */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold hover:scale-105 transition disabled:opacity-50"
+        >
+          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+        </button>
 
-<Lock className="absolute left-3 top-3 text-gray-300" size={18}/>
+      </form>
 
-<input
-type={showPassword?"text":"password"}
-placeholder="Mật khẩu"
-className="w-full pl-10 pr-10 p-3 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-onChange={e=>setPassword(e.target.value)}
-/>
+      {/* BACK HOME */}
+      <button
+        onClick={()=>router.push("/")}
+        className="w-full border text-white py-2 mt-3 rounded-lg"
+      >
+        ← Trang chủ
+      </button>
 
-<button
-type="button"
-className="absolute right-3 top-3 text-gray-300"
-onClick={()=>setShowPassword(!showPassword)}
->
-{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-</button>
+      {/* REGISTER */}
+      <p className="text-gray-200 text-center mt-6 text-sm">
+        Chưa có tài khoản?{" "}
+        <a href="/register" className="text-blue-300 hover:underline">
+          Đăng ký
+        </a>
+      </p>
 
-</div>
+    </div>
 
-{/* BUTTON */}
+  </div>
 
-<button
-onClick={login}
-className="w-full py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold hover:scale-105 transition"
->
-Đăng nhập
-</button>
-<button
-onClick={()=>router.push("/")}
-
-className="w-full border text-white py-2 mb-3"
-
->
-← Trang chủ
-</button>
-
-{/* LINK REGISTER */}
-
-<p className="text-gray-200 text-center mt-6 text-sm">
-Chưa có tài khoản?{" "}
-<a
-href="/register"
-className="text-blue-300 hover:underline"
->
-Đăng ký
-</a>
-</p>
-
-</div>
-
-</div>
-
-)
-
+  )
 }

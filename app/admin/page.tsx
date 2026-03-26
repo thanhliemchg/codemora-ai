@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import ChangePassword from "../components/ChangePassword"
-
+import * as XLSX from "xlsx"
+import Header from "../components/header"
 export default function Admin(){
 
 const [teachers,setTeachers] = useState({
@@ -21,8 +22,30 @@ const [editingTeacher,setEditingTeacher] = useState<any>(null)
 const [user,setUser] = useState<any>(null)
 const [showPassword,setShowPassword] = useState(false)
 
+const [editingStudent,setEditingStudent] = useState<any>(null)
+const [classes,setClasses] = useState<any[]>([])
+const [selectedClass,setSelectedClass] = useState("")
+
+const filteredStudents = students.active.filter((s:any)=>
+  !selectedClass || s.class_id === selectedClass
+)
+const filteredActive = students.active.filter((s:any)=>{
+  if(!selectedClass) return true
+  return String(s.class_id) === String(selectedClass)
+})
+
+const filteredPending = students.pending.filter((s:any)=>{
+  if(!selectedClass) return true
+  return String(s.class_id) === String(selectedClass)
+})
 
 // ================= LOAD DATA =================
+async function loadClasses(){
+  const res = await fetch("/api/get-classes")
+  const data = await res.json()
+  setClasses(data || [])
+}
+
 async function loadTeachers(){
 
 const res = await fetch("/api/get-teachers")
@@ -34,6 +57,9 @@ setTeachers({
 })
 
 }
+
+console.log("selectedClass:", selectedClass)
+console.log("filtered:", filteredActive.length)
 
 async function loadStudents(){
   try{
@@ -163,44 +189,100 @@ async function deleteStudent(id:string){
 
 
 // ================= RESET MK =================
-async function resetPassword(id:string){
-
-if(!confirm("Reset mật khẩu?")) return
-
-const res = await fetch("/api/reset-teacher-password",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({id})
-})
-
-const result = await res.json()
-
-if(!result.success){
-alert("Lỗi ❌")
-return
-}
-
-alert("Mật khẩu mới: " + result.password)
-
-}
 async function resetStudent(id:string){
 
   if(!confirm("Reset mật khẩu?")) return
 
-  const res = await fetch("/api/reset-student-password",{
+  const res = await fetch("/api/reset-password",{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({id})
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      ids: [id] // ✅ QUAN TRỌNG
+    })
+  })
+
+  const result = await res.json()
+
+  console.log("RESET:", result)
+
+  if(!result.success){
+    alert("Lỗi reset ❌")
+    return
+  }
+
+  alert("Mật khẩu mới: " + result.accounts[0].password)
+}
+async function resetSelected(){
+
+  if(selectedStudents.length === 0){
+    alert("Chọn học sinh trước")
+    return
+  }
+
+  const res = await fetch("/api/reset-password",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      ids: selectedStudents
+    })
+  })
+
+  const result = await res.json()
+
+  console.log("RESULT:", result)
+
+  if(!result.success){
+    alert("Lỗi reset ❌")
+    return
+  }
+
+  if(!result.accounts || result.accounts.length === 0){
+    alert("Không có dữ liệu để xuất")
+    return
+  }
+
+  // ===== EXPORT EXCEL =====
+  const data = result.accounts.map((a:any, i:number)=>({
+    STT: i + 1,
+    "Tên": a.name,
+    "Email": a.email,
+    "Mật khẩu": a.password
+  }))
+
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(wb, ws, "Passwords")
+
+  XLSX.writeFile(wb, "reset_password.xlsx")
+
+  alert(`Đã reset ${result.count} tài khoản`)
+
+  setSelectedStudents([])
+}
+
+async function saveStudent(){
+
+  const res = await fetch("/api/update-student-admin",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify(editingStudent)
   })
 
   const data = await res.json()
 
-  if(data.password){
-    alert("Mật khẩu mới: " + data.password)
+  if(data.success){
+    alert("Cập nhật thành công")
+    setEditingStudent(null)
+    loadStudents()
   }else{
-    alert("Lỗi reset ❌")
+    alert("Lỗi ❌")
   }
 
 }
@@ -209,7 +291,7 @@ useEffect(()=>{
 
 loadTeachers()
 loadStudents()
-
+loadClasses()
 const u = localStorage.getItem("user")
 
 if(!u){
@@ -236,63 +318,13 @@ return(
 
 
 {/* ===== HEADER ===== */}
-<div className="flex justify-between items-center px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow">
-
-<h1 className="font-bold text-xl">
-🚀 CodeMora AI
-</h1>
-
-<div className="flex items-center">
-
-<span
-onClick={()=>setShowPassword(true)}
-className="mr-4 bg-white/20 px-3 py-1 rounded-full text-sm cursor-pointer"
->
-👤 {user?.name}
-</span>
-
-<button
-onClick={()=>{
-localStorage.removeItem("user")
-window.location.href="/login"
-}}
-className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded-lg"
->
-Đăng xuất
-</button>
-
-</div>
-
-</div>
-
-
-{/* ===== MODAL ĐỔI MẬT KHẨU ===== */}
-{showPassword && (
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-<div className="bg-white p-6 rounded-xl w-80">
-
-<ChangePassword/>
-
-<button
-onClick={()=>setShowPassword(false)}
-className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
->
-Đóng
-</button>
-
-</div>
-
-</div>
-)}
-
-
+<Header user={user} />
 {/* ===== CONTENT ===== */}
 <div className="p-8">
 
 
-<h1 className="text-2xl font-bold mb-6">
-Admin Dashboard
+<h1 className="text-1xl font-bold mb-6">
+Trang Admin
 </h1>
 
 
@@ -329,14 +361,16 @@ Admin Dashboard
 </h2>
 
 <h2 className="text-yellow-600 font-bold mb-3">
-Giáo viên chờ kích hoạt
+Giáo viên chờ kích hoạt ({teachers.pending.length})
 </h2>
 
+<div className="hidden md:block overflow-x-auto">
+  {/* TABLE DESKTOP TEACHERS */}
 <table className="w-full">
 
 <thead className="bg-yellow-50">
 <tr>
-<th className="p-3 text-left">Tên</th>
+<th className="p-3 text-left">Họ và tên</th>
 <th className="p-3 text-left">Email</th>
 <th className="p-3 text-left">Hành động</th>
 </tr>
@@ -347,7 +381,7 @@ Giáo viên chờ kích hoạt
 {teachers.pending.map((t:any)=>(
 <tr key={t.id} className="border-t hover:bg-gray-50">
 
-<td className="p-3">{t.name}</td>
+<td className="p-3 font-semibold">{t.name}</td>
 <td className="p-3">{t.email}</td>
 
 <td className="p-3">
@@ -375,20 +409,44 @@ Không có giáo viên chờ kích hoạt
 
 </table>
 
+</div>
+<div className="md:hidden space-y-3">
 
+{teachers.pending.map((t:any)=>(
+  <div key={t.id} className="bg-yellow-50 rounded-xl p-4 shadow border">
 
+    <div className="font-semibold">
+      {t.name}
+    </div>
+
+    <div className="text-sm text-gray-600">
+      {t.email}
+    </div>
+
+    <button
+      onClick={()=>activate(t.id)}
+      className="mt-3 bg-green-500 text-white px-3 py-1 rounded text-sm"
+    >
+      Kích hoạt
+    </button>
+
+  </div>
+))}
+
+</div>
 {/* ===== ĐÃ KÍCH HOẠT ===== */}
 
 
-<h2 className="text-green-600 font-bold mb-3">
-Giáo viên đã kích hoạt
+<h2 className="text-green-600 font-bold mb-4">
+Giáo viên đã kích hoạt ({teachers.active.length})
 </h2>
-
+<div className="hidden md:block overflow-x-auto">
+  {/* TABLE DESKTOP TEACHERS */}
 <table className="w-full">
 
 <thead className="bg-green-50">
 <tr>
-<th className="p-3 text-left">Tên</th>
+<th className="p-3 text-left">Họ và tên</th>
 <th className="p-3 text-left">Email</th>
 <th className="p-3 text-left">Trạng thái</th>
 </tr>
@@ -399,7 +457,7 @@ Giáo viên đã kích hoạt
 {teachers.active.map((t:any)=>(
 <tr key={t.id} className="border-t hover:bg-gray-50">
 
-<td className="p-3">{t.name}</td>
+<td className="p-3 font-semibold">{t.name}</td>
 <td className="p-3">{t.email}</td>
 
 <td className="p-3">
@@ -455,7 +513,57 @@ Chưa có giáo viên nào
 </table>
 
 </div>
+</div>
+<div className="md:hidden space-y-3">
 
+{teachers.active.map((t:any)=>(
+  <div key={t.id} className="bg-white rounded-xl p-4 shadow border">
+
+    <div className="font-semibold text-base">
+      {t.name}
+    </div>
+
+    <div className="text-sm text-gray-600">
+      {t.email}
+    </div>
+
+    <div className="mt-1 text-green-600 text-sm">
+      Đã kích hoạt
+    </div>
+
+    <div className="flex gap-2 mt-3 flex-wrap">
+
+      <button
+        type="button"
+        onClick={()=>{
+          console.log("CLICK", t)   
+          setEditingTeacher(t)
+        }}
+        className="bg-yellow-500 text-white px-2 py-1 rounded"
+        >
+        Sửa
+      </button>
+
+      <button
+        type="button"
+        onClick={()=>deleteTeacher(t.id)}
+        className="bg-red-500 text-white px-2 py-1 rounded"
+        >
+        Xoá
+      </button>
+
+      <button
+        type="button"
+        onClick={()=>resetPassword(t.id)}
+        className="bg-blue-500 text-white px-2 py-1 rounded"
+        >
+        Reset MK
+      </button>
+
+    </div>
+
+  </div>
+))}
 
 </div>
 
@@ -466,7 +574,27 @@ Chưa có giáo viên nào
 <h2 className="text-xl font-bold mb-4">
 👨‍🎓 Quản lý học sinh
 </h2>
+<div>
+<h2 className=" text-blue px-3 py-1">Lọc theo lớp: </h2>
+<select
+value={selectedClass}
+onChange={(e)=>setSelectedClass(e.target.value)}
+className="border px-3 py-2 rounded"
+>
+<option value="">Tất cả</option>
 
+{classes.map((c:any)=>(
+  <option key={c.id} value={c.id}>
+    {c.name}
+  </option>
+  
+))}
+</select>
+<span className="text-gray-500 text-sm">
+{selectedClass ? "Đang lọc theo lớp" : ""}
+</span>
+
+</div>
 {/* LOADING */}
 {loadingStudents && (
   <div className="text-gray-400 mb-4">Đang tải dữ liệu...</div>
@@ -474,14 +602,15 @@ Chưa có giáo viên nào
 
 {/* ===== CHỜ KÍCH HOẠT ===== */}
 <h3 className="text-yellow-600 font-semibold mb-2">
-Học sinh chờ kích hoạt ({students.pending.length})
+Học sinh chờ kích hoạt ({filteredPending.length})
 </h3>
-
+<div className="hidden md:block overflow-x-auto">
+  {/* TABLE DESKTOP STUDENTS */}
 <table className="w-full mb-6 rounded overflow-hidden">
 
 <thead className="bg-yellow-100">
 <tr>
-<th className="p-2 text-left">Tên</th>
+<th className="p-2 text-left">Họ và tên</th>
 <th className="p-2 text-left">Email</th>
 <th className="p-2 text-left">Lớp</th>
 <th className="p-2 text-left">Hành động</th>
@@ -490,19 +619,19 @@ Học sinh chờ kích hoạt ({students.pending.length})
 
 <tbody>
 
-{students.pending.length === 0 ? (
+{filteredPending.length === 0 ? (
 <tr>
 <td colSpan={3} className="text-center p-4 text-gray-400">
 Không có học sinh chờ kích hoạt
 </td>
 </tr>
 ) : (
-students.pending.map((s:any)=>(
+filteredPending.map((s:any)=>(
 <tr key={s.id} className="border-t hover:bg-yellow-50">
 
 <td className="p-2 font-semibold">{s.name}</td>
-<td className="p-2 text-sm">{s.email}</td>
-<td className="p-2 text-sm">{s.class_name} </td>
+<td className="p-2">{s.email}</td>
+<td className="p-2">{s.class_name} </td>
 <td>
 <button
 onClick={()=>activateStudent(s.id)}
@@ -519,17 +648,54 @@ Kích hoạt
 </tbody>
 </table>
 
+</div>
+<div className="md:hidden space-y-3">
 
+{filteredPending.map((s:any)=>(
+  <div key={s.id} className="bg-yellow-50 rounded-xl p-4 shadow border">
+
+    <div className="font-semibold">
+      {s.name}
+    </div>
+
+    <div className="text-sm text-gray-600">
+      {s.email}
+    </div>
+
+    <div className="text-sm mt-1">
+      <span className="font-medium">Lớp:</span>{" "}
+      {s.class_name || "Chưa có"}
+    </div>
+
+    <div className="mt-3">
+      <button
+        onClick={()=>activateStudent(s.id)}
+        className="bg-green-500 text-white px-3 py-1 rounded text-sm"
+      >
+        Kích hoạt
+      </button>
+    </div>
+
+  </div>
+))}
+
+{filteredPending.length === 0 && (
+  <div className="text-center text-gray-400 text-sm">
+    Không có học sinh chờ kích hoạt
+  </div>
+)}
+
+</div>
 {/* ===== ĐÃ KÍCH HOẠT ===== */}
 
 <h3 className="text-green-600 font-semibold mb-2">
-Học sinh đã kích hoạt ({students.active.length})
+Học sinh đã kích hoạt ({filteredActive.length})
 </h3>
 
 <div className="mb-3 flex gap-2">
 
 <button
-onClick={()=>setSelectedStudents(students.active.map((s:any)=>s.id))}
+onClick={()=>setSelectedStudents(filteredActive.map((s:any)=>s.id))}
 className="bg-gray-200 px-3 py-1 rounded"
 >
 Chọn tất cả
@@ -544,21 +710,24 @@ Bỏ chọn
 
 <button
 onClick={()=>{
-  selectedStudents.forEach(id=>resetStudent(id))
+  selectedStudents.forEach(id=>resetSelected(id))
 }}
 className="bg-red-600 text-white px-3 py-1 rounded"
 >
 🔑 Reset MK đã chọn
 </button>
 
-</div>
 
+
+</div>
+<div className="hidden md:block overflow-x-auto">
+  {/* TABLE DESKTOP STUDENTS */}
 <table className="w-full rounded overflow-hidden">
 
 <thead className="bg-green-100">
 <tr>
 <th className="p-3 "></th>
-<th className="p-2 text-left">Tên</th>
+<th className="p-2 text-left">Họ và tên</th>
 <th className="p-2 text-left">Email</th>
 <th className="p-2 text-left">Lớp</th>
 <th className="p-2 text-left">Trạng thái</th>
@@ -568,14 +737,14 @@ className="bg-red-600 text-white px-3 py-1 rounded"
 
 <tbody>
 
-{students.active.length === 0 ? (
+{filteredActive.length === 0 ? (
 <tr>
 <td colSpan={5} className="text-center p-4 text-gray-400">
 Chưa có học sinh
 </td>
 </tr>
 ) : (
-students.active.map((s:any)=>{
+filteredActive.map((s:any)=>{
 
 const checked = selectedStudents.includes(s.id)
 
@@ -597,8 +766,8 @@ onChange={(e)=>{
 </td>
 
 <td className="p-2 font-semibold text-left">{s.name}</td>
-<td className="p-2 text-sm text-left">{s.email}</td>
-<td className="p-2 text-sm text-left"> {s.class_name} </td>
+<td className="p-2 text-left">{s.email}</td>
+<td className="p-2 text-left"> {s.class_name} </td>
 <td>
 <span className="text-green-600 font-semibold">
 Đã kích hoạt
@@ -608,7 +777,12 @@ onChange={(e)=>{
 <td className="space-x-2">
 
 
-
+<button
+onClick={()=>setEditingStudent(s)}
+className="bg-yellow-500 text-white px-2 py-1 rounded"
+>
+Sửa
+</button>
 
 <button
 onClick={()=>deleteStudent(s.id)}
@@ -632,9 +806,75 @@ Reset MK
 </tbody>
 
 </table>
-<div className="mt-4 text-gray-600 font-semibold">
-Tổng học sinh: {students.active.length}
 </div>
+</div>
+</div>
+<div className="md:hidden space-y-3 pb-24">
+
+{filteredActive.map((s:any)=>(
+  <div key={s.id} className="bg-white rounded-xl p-4 shadow border">
+
+    {/* CHECKBOX + NAME */}
+    <div className="flex items-center gap-2">
+
+      <input
+        type="checkbox"
+        checked={selectedStudents.includes(s.id)}
+        onChange={(e)=>{
+          if(e.target.checked){
+            setSelectedStudents([...selectedStudents, s.id])
+          }else{
+            setSelectedStudents(selectedStudents.filter(id=>id!==s.id))
+          }
+        }}
+      />
+
+      <div className="font-semibold">
+        {s.name}
+      </div>
+
+    </div>
+
+    <div className="text-sm text-gray-600 mt-1">
+      {s.email}
+    </div>
+
+    <div className="text-sm mt-1">
+      <span className="font-medium">Lớp:</span>{" "}
+      {s.class_name || "Chưa có"}
+    </div>
+
+    <div className="text-green-600 text-sm mt-1">
+      Đã kích hoạt
+    </div>
+
+    {/* ACTION */}
+    <div className="flex gap-2 mt-3 flex-wrap">
+
+      <button
+      onClick={()=>setEditingStudent(s)}
+      className="bg-yellow-500 text-white px-2 py-1 rounded"
+      >
+      Sửa
+      </button>
+
+      <button
+      onClick={()=>deleteStudent(s.id)}
+      className="bg-red-500 text-white px-2 py-1 rounded"
+      >
+      Xoá
+      </button>
+      <button
+      onClick={()=>resetStudent(s.id)}
+      className="bg-blue-500 text-white px-2 py-1 rounded"
+      >
+      Reset MK
+      </button>
+
+    </div>
+
+  </div>
+))}
 
 </div>
 {editingTeacher && (
@@ -683,6 +923,73 @@ Lưu
 
 </div>
 
+</div>
+
+)}
+{editingStudent && (
+
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+
+<div className="bg-white p-6 rounded-xl w-80">
+
+<h2 className="font-bold mb-3">Sửa học sinh</h2>
+
+<input
+className="border p-2 w-full mb-2"
+value={editingStudent.name || ""}
+onChange={(e)=>setEditingStudent({
+  ...editingStudent,
+  name:e.target.value
+})}
+/>
+
+<input
+className="border p-2 w-full mb-2"
+value={editingStudent.email || ""}
+onChange={(e)=>setEditingStudent({
+  ...editingStudent,
+  email:e.target.value
+})}
+/>
+
+{/* 🔥 CHỌN LỚP */}
+<select
+className="border p-2 w-full mb-3"
+value={editingStudent.class_id || ""}
+onChange={(e)=>setEditingStudent({
+  ...editingStudent,
+  class_id:e.target.value
+})}
+>
+<option value="">-- Chọn lớp --</option>
+
+{classes.map((c:any)=>(
+  <option key={c.id} value={c.id}>
+    {c.name}
+  </option>
+))}
+
+</select>
+
+<div className="flex gap-2">
+
+<button
+onClick={()=>setEditingStudent(null)}
+className="bg-gray-300 px-3 py-1 rounded"
+>
+Huỷ
+</button>
+
+<button
+onClick={saveStudent}
+className="bg-blue-500 text-white px-3 py-1 rounded"
+>
+Lưu
+</button>
+
+</div>
+
+</div>
 </div>
 
 )}

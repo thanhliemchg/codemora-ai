@@ -43,7 +43,12 @@ if(role==="student" && !class_id){
 alert("Học sinh phải chọn lớp")
 return
 }
+const cleanEmail = email.trim().toLowerCase()
 
+  if(!isValidEmail(cleanEmail)){
+    alert("Email không hợp lệ ❌")
+    return
+  }
 const res = await fetch("/api/register",{
 
 method:"POST",
@@ -55,7 +60,7 @@ headers:{
 body:JSON.stringify({
 
 name,
-email,
+email:cleanEmail,
 password,
 role,
 class_id: role==="student" ? class_id : null
@@ -73,18 +78,20 @@ return
 
 if(data.success){
 
-alert("Đăng ký thành công, chờ kích hoạt tài khoản")
+alert("✅ Đăng ký thành công, chờ kích hoạt tài khoản")
 
 router.push("/login")
 
 }else{
 
-alert("Đăng ký thất bại")
+alert(data.message || "Đăng ký thất bại")
 
 }
 
 }
-
+function isValidEmail(email:string){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
 return(
 
 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-600">
@@ -127,10 +134,12 @@ onChange={e=>setName(e.target.value)}
 <Mail className="absolute left-3 top-3 text-gray-300" size={18}/>
 
 <input
-type="email"
-placeholder="Email"
-className="w-full pl-10 p-3 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-onChange={e=>setEmail(e.target.value)}
+  type="email"
+  placeholder="Email"
+  required
+  value={email}
+  onChange={(e)=>setEmail(e.target.value)}
+  className="w-full pl-10 p-3 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
 />
 
 </div>

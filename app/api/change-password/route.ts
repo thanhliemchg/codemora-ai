@@ -1,57 +1,37 @@
-import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 import bcrypt from "bcryptjs"
-import { supabase } from "@/lib/supabase"
 
-export async function POST(req: Request){
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-try{
+export async function POST(req:Request){
 
-const { user_id, old_password, new_password } = await req.json()
+  const { userId, oldPassword, newPassword } = await req.json()
 
-// lấy user
-const { data:user, error } = await supabase
-.from("users")
-.select("password")
-.eq("id",user_id)
-.single()
+  if(!userId){
+    return Response.json({ success:false })
+  }
 
-if(error || !user){
-return NextResponse.json({
-success:false,
-message:"Không tìm thấy user"
-})
-}
+  const { data } = await supabase
+    .from("users")
+    .select("password")
+    .eq("id",userId)
+    .single()
 
-// kiểm tra mật khẩu cũ
-const ok = await bcrypt.compare(old_password,user.password)
+  const isMatch = await bcrypt.compare(oldPassword, data.password)
 
-if(!ok){
-return NextResponse.json({
-success:false,
-message:"Sai mật khẩu cũ"
-})
-}
+  if(!isMatch){
+    return Response.json({ success:false, message:"Sai mật khẩu cũ" })
+  }
 
-// hash password mới
-const hash = await bcrypt.hash(new_password,10)
+  const hash = await bcrypt.hash(newPassword,10)
 
-// update
-await supabase
-.from("users")
-.update({password:hash})
-.eq("id",user_id)
+  await supabase
+    .from("users")
+    .update({ password:hash })
+    .eq("id",userId)
 
-return NextResponse.json({
-success:true
-})
-
-}catch(e){
-
-return NextResponse.json({
-success:false,
-message:"Server error"
-})
-
-}
-
+  return Response.json({ success:true })
 }

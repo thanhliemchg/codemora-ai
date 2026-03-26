@@ -4,12 +4,12 @@ import { useState,useEffect} from "react"
 import CodeEditor from "../components/CodeEditor"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import ChangePassword from "../components/ChangePassword"
 import { setTooltipSettingsState } from "recharts/types/state/tooltipSlice"
 import { s, sub } from "framer-motion/client"
 import { useSearchParams, useRouter } from "next/navigation"
-
+import Header from "../components/header"
 export default function Student(){
+
 const [teacherExercise,setTeacherExercise] = useState("")
 const [teacherExerciseId,setTeacherExerciseId] = useState<string | null>(null)
 const [teacherExercises,setTeacherExercises] = useState<any[]>([])
@@ -445,7 +445,6 @@ return(
 
 
 <div className="flex min-h-screen bg-gray-100">
-
 {/* SIDEBAR */}
 
 <div className="hidden lg:block w-[240px] bg-gradient-to-b from-indigo-500 to-purple-600 text-white p-6 flex flex-col shadow-x1">
@@ -496,60 +495,8 @@ tab==="history"
 
 
 <div className="min-h-screen bg-gray-100 text-gray-800 w-full pb-24">
-<div className="flex justify-between items-center px-3 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+  <Header user={user} />
 
-<div className="flex items-center gap-3 px-2">
-  <img 
-    src="/logo.png" 
-    alt="logo" 
-    className="w-10 h-10 rounded-xl shadow-md"
-  />
-  <span className="font-bold text-2xl text-white">
-    CodeMora AI
-  </span>
-</div>
-
-<div className="flex items-center">
-
-<span
-onClick={()=>setShowPassword(true)}
-className="mr-4 bg-white/20 text-white px-3 py-1 rounded-full text-sm font-semibold cursor-pointer"
->
-👤 {user?.name}
-</span>
-
-<button
-onClick={()=>{
-localStorage.removeItem("user")
-window.location.href="/login"
-}}
-className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg shadow"
->
-Đăng xuất
-</button>
-
-</div>
-
-</div>
-{/* ===== MODAL ĐỔI MẬT KHẨU ===== */}
-{showPassword && (
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-<div className="bg-white p-6 rounded-xl w-80">
-
-<ChangePassword/>
-
-<button
-onClick={()=>setShowPassword(false)}
-className="mt-3 bg-gray-200 px-3 py-1 rounded w-full"
->
-Đóng
-</button>
-
-</div>
-
-</div>
-)}
 {/* ================= DASHBOARD ================= */}
 
 
