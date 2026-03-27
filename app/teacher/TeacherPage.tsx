@@ -489,6 +489,29 @@ function highlightDiff(a:string,b:string){
   return {resA,resB}
 }
 
+const resetSubmission = async (id: string) => {
+  if (!confirm("Reset bài này?")) return
+
+  const res = await fetch("/api/reset-submission", {
+    method: "POST",
+    body: JSON.stringify({ id })
+  })
+
+  const data = await res.json()
+
+  if (data.success) {
+    alert("Đã reset thành công")
+
+    // 🔥 LOAD LẠI DATA CHUẨN
+    await loadSubmissions(selectedClass)
+
+    // 🔥 clear detail (nếu đang xem bài vừa reset)
+    setSelectedSubmission(null)
+
+  } else {
+    alert("Reset thất bại")
+  }
+}
 
 async function loadPairCode(p: any) {
 
@@ -2690,6 +2713,7 @@ className={`px-3 py-1 rounded ${
           <th>Điểm AI</th>
           <th>Điểm GV</th>
           <th>Trạng thái</th>
+          <th> Hành động</th>
         </tr>
       </thead>
 
@@ -2746,7 +2770,16 @@ className={`px-3 py-1 rounded ${
                 {statusMap[s.status] ||"❌ Chưa nộp"}
               </span>
             </td>
-
+            <td>
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
+              onClick={(e) => {e.stopPropagation()
+                              resetSubmission(s.id)}
+              }
+            >
+              🔄 Reset
+            </button> 
+            </td>
           </tr>
         ))}
       </tbody>
@@ -2791,6 +2824,14 @@ className={`px-3 py-1 rounded ${
       <div className="text-xs bg-gray-100 px-2 py-1 rounded">
         {statusMap[s.status]}
       </div>
+      <button
+      className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
+      onClick={(e) => {e.stopPropagation()
+                              resetSubmission(s.id)}
+              }
+    >
+      🔄 Reset
+    </button>
     </div>
 
     <div className="text-sm text-gray-500 mt-1">
@@ -2800,6 +2841,7 @@ className={`px-3 py-1 rounded ${
     <div className="flex justify-between mt-3 text-sm">
       <div>Điểm AI: <b>{s.ai_score ?? "-"}</b></div>
       <div>Điểm GV: <b>{s.teacher_score ?? "-"}</b></div>
+      
     </div>
 
   </div>
