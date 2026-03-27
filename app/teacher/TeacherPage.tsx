@@ -355,9 +355,7 @@ useEffect(()=>{
 useEffect(()=>{
   if(!selectedClass) return
 
-  console.log("🔥 LOAD:", selectedClass, tab)
-
-  if(tab==="students"){
+   if(tab==="students"){
     loadStudents(selectedClass)
   }
 
@@ -379,7 +377,7 @@ useEffect(()=>{
 
 useEffect(()=>{
   const cls = searchParams.get("class")
-  if(!cls) return  
+  if(cls) return  
     setSelectedClass(cls)
   },[searchParams])
 
@@ -549,7 +547,9 @@ async function loadClasses(){
 
   setClasses(data)
 
-  // 🔥 FIX CỐT LÕI
+  if (data.length>0){
+    setSelectedClass(prev => prev || data[0].id)
+  }
   const cls = searchParams.get("class")
 
   if(cls){
@@ -1365,7 +1365,7 @@ Lưu
       `}
     >
       <span>📥</span>
-      <span>Bài nộp</span>
+      <span>Chấm bài</span>
     </li>
 
 
