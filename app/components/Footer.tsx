@@ -54,8 +54,9 @@ export default function Footer() {
           <h3 className="font-semibold mb-3 min-h-[24px]">📚 Hệ thống</h3>
           <ul className="space-y-2 text-sm text-white/80">
             <FooterLink text="Lớp học" />
-            <FooterLink text="Giao bài tập" />
-            <FooterLink text="Bài nộp" />
+            <FooterLink text="Học sinh" />
+            <FooterLink text="Giao bài" />
+            <FooterLink text="Chấm bài" />
             <FooterLink text="Phát hiện copy" />
           </ul>
         </div>
