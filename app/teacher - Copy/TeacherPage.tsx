@@ -14,7 +14,7 @@ import { b, tr } from "framer-motion/client"
 import LayoutContainer from "../components/LayoutContainer"
 import ExcelJS from "exceljs"
 import { saveAs } from "file-saver"
-import Student from "../student/S"
+import Student from "../student/16h00 20.3.2026"
 
 export default function Teacher(){
 
@@ -22,7 +22,7 @@ export default function Teacher(){
 const router = useRouter()
 const searchParams = useSearchParams()
 const tabQuery = searchParams.get("tab")
-
+const classId = searchParams.get("class")
 
 const rawtab = searchParams.get("tab")
 const tab = rawtab || "classes"
@@ -71,7 +71,7 @@ const [file,setFile] = useState<any>(null)
 
 const [fileName,setFileName] = useState("Chưa có tệp được chọn")
 
-const [selectedClass,setSelectedClass] = useState<string | null>(null)
+const [selectedClass,setSelectedClass] = useState(classId || null)
 const [selectedClassName,setSelectedClassName] = useState("")
 const [loading,setLoading] = useState(false)
 const [loadingtest,setLoadingtest] = useState(false)
@@ -353,35 +353,34 @@ useEffect(()=>{
 },[]) // ❗ chỉ chạy 1 lần
 
 useEffect(()=>{
-  if(!selectedClass) return
+  if(classId){
+    setSelectedClass(classId)
+  }
+},[classId])
+useEffect(()=>{
 
-  console.log("🔥 LOAD:", selectedClass, tab)
+  if(!classId) return
+  if(!tab) return  // ❗ CHỐT CHẶN BUG
 
   if(tab==="students"){
-    loadStudents(selectedClass)
+    loadStudents(classId,"")
   }
 
   if(tab==="submissions"){
-    loadSubmissions(selectedClass)
-    loadTeacherExercises(selectedClass)
+    loadSubmissions(classId,"")
+    loadTeacherExercises(classId)
   }
 
   if(tab==="exercise"){
-    loadStudents(selectedClass)
-    loadExercises(selectedClass)
+    loadStudents(classId,"")
+    loadExercises(classId,"")
   }
 
   if(tab==="copy"){
     loadCopy()
   }
 
-},[selectedClass, tab])
-
-useEffect(()=>{
-  const cls = searchParams.get("class")
-  if(!cls) return  
-    setSelectedClass(cls)
-  },[searchParams])
+},[classId, tab])
 
 useEffect(()=>{
   setSelectedStudent(null)
@@ -396,15 +395,6 @@ useEffect(()=>{
 useEffect(()=>{
   setShowModal(false)
 },[tab])
-
-useEffect(()=>{
-  if(classes.length && selectedClass){
-    const c = classes.find((cl:any)=>cl.id===selectedClass)
-    if(c){
-      setSelectedClassName(c.name)
-    }
-  }
-},[classes, selectedClass])
 
 function parseExercise(text:any){
 
@@ -466,7 +456,21 @@ setSelectedClassName(name)
 
 router.push(`/teacher?tab=${tab}&class=${id}`)
 
+if(tab==="students"){
+loadStudents(id,name)
+}
 
+if(tab==="submissions"){
+loadSubmissions(id,name)
+}
+
+if(tab==="exercise"){
+loadExercises(id,name)
+}
+
+if(tab==="copy"){
+detectCopy()
+}
 
 }
 
@@ -491,6 +495,36 @@ function highlightDiff(a:string,b:string){
   return {resA,resB}
 }
 
+async function loadStats(){
+
+  try{
+
+    let url = ""
+
+    if(statMode==="class"){
+      if(!selectedClass){
+        console.log("❌ chưa có class")
+        return
+      }
+      url = `/api/statistics?class_id=${selectedClass}&mode=class`
+    }else{
+      url = `/api/statistics?mode=all`
+    }
+
+    console.log("CALL:", url)
+
+    const res = await fetch(url)
+
+    const data = await res.json()
+
+    console.log("DATA:", data)
+
+    setStats(data)
+
+  }catch(err){
+    console.error("Lỗi:", err)
+  }
+}
 
 async function loadPairCode(p: any) {
 
@@ -537,29 +571,25 @@ async function loadPairCode(p: any) {
 
 async function loadClasses(){
 
-  const res = await fetch("/api/classes")
+const res = await fetch("/api/classes")
 
-  let data = []
+let data = []
 
-  try{
-    data = await res.json()
-  }catch(e){
-    console.log("JSON lỗi")
-  }
+try{
+data = await res.json()
+}catch(e){
+console.log("JSON lỗi")
+}
 
-  setClasses(data)
+setClasses(data)
 
-  // 🔥 FIX CỐT LÕI
-  const cls = searchParams.get("class")
+if(classId){
+const c = data.find((cl:any)=>cl.id===classId)
+if(c){
+setSelectedClassName(c.name)
+}
+}
 
-  if(cls){
-    const c = data.find((cl:any)=>String(cl.id)===String(cls))
-
-    if(c){
-      setSelectedClass(c.id)
-      setSelectedClassName(c.name)
-    }
-  }
 }
 
 async function createClass(){
@@ -635,31 +665,29 @@ loadClasses()
 
 }
 
-async function loadStudents(class_id:any){
+async function loadStudents(class_id:any,name:any){
 
-  if(!class_id) return
+if(!class_id){
+console.log("class_id rỗng")
+return
+}
 
-  const pendingRes = await fetch(`/api/pending-students?class_id=${class_id}`)
-  const pendingJson = await pendingRes.json()
+setSelectedClass(class_id)
+setSelectedClassName(name)
 
-  const activeRes = await fetch(`/api/class-students?class_id=${class_id}`)
-  const activeJson = await activeRes.json()
+//changeTab("students")
 
-  console.log("ACTIVE:", activeJson)
+const pendingRes = await fetch(`/api/pending-students?class_id=${class_id}`)
+const pending = await pendingRes.json()
 
-  setStudents({
-    pending: Array.isArray(pendingJson?.data)
-      ? pendingJson.data
-      : Array.isArray(pendingJson)
-      ? pendingJson
-      : [],
+const activeRes = await fetch(`/api/class-students?class_id=${class_id}`)
+const active = await activeRes.json()
 
-    active: Array.isArray(activeJson?.data)
-      ? activeJson.data
-      : Array.isArray(activeJson)
-      ? activeJson
-      : []
-  })
+setStudents({
+pending: pending.data || pending || [],
+active: active.data || active || []
+})
+
 }
 
 async function activateStudent(id:any){
@@ -1392,31 +1420,13 @@ Lưu
 
 <div className="flex-1 p-3 sm:p-4 lg:p-8">
 
-<div className="mb-4 flex items-center gap-2">
+{selectedClassName && (
 
-  <span className="text-red-600 font-bold">
-    📚 LỚP:
-  </span>
-
-  <select
-    value={selectedClass || ""}
-    onChange={(e)=>{
-      const id = e.target.value
-
-      setSelectedClass(id)
-
-      router.push(`/teacher?tab=${tab}&class=${id}`)
-    }}
-    className="border border-red-400 px-2 py-1 rounded font-semibold text-red-600 bg-white"
-  >
-    {classes.map((c:any)=>(
-      <option key={c.id} value={c.id}>
-        {c.name}
-      </option>
-    ))}
-  </select>
-
+<div className="mb-6 text-red-600 font-bold mb-6">
+📚 LỚP: {selectedClassName}
 </div>
+
+)}
 
 {tab==="classes" && (
 
