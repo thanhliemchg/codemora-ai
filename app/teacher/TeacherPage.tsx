@@ -1094,7 +1094,10 @@ console.log("EXERCISES DATA:", data)
 }
 
 async function createExercise(){
-
+if(!tests || tests.length===0){
+  alert("Vui lòng thêm hoặc sinh test trước khi giao bài!")
+  return
+}
 if(!selectedClass){
 alert("Vui lòng chọn lớp trước")
 return
@@ -1348,7 +1351,7 @@ Lưu
       `}
     >
       <span>📝</span>
-      <span>Giao bài tập</span>
+      <span>Giao bài</span>
     </li>
 
 
