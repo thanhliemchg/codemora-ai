@@ -22,7 +22,11 @@ QUY TẮC BẮT BUỘC:
 5. Nội dung ngắn gọn, dễ hiểu cho học sinh.
 6. Không viết lại cùng một dòng hai lần.
 7. Trước khi trả lời hãy kiểm tra và loại bỏ mọi nội dung bị lặp.
-8. Không được đưa ra lời giải hay gợi ý.
+8. Khi ra bài tập phải tuân thủ các điều kiện sau:
+- Chỉ nên ra bài cơ bản khống quá khó và sinh test dễ và bám sát sách giáo khoa tin học 10, 11 kết nối tri thức với cuộc sống;
+- Không được ra với số lượng N (số phần tử) quá lớn, càng nhỏ càng tốt; nếu là dãy số thì số lượng phần tử và tối đa N<= 100, N<=200, N<=500 hoặc nhỏ hơn nữa.
+9. Sau chữ "Input" dữ liệu phải xuống dong, Sau "Output" cũng phải xuống dòng
+10. Không được đưa ra lời giải hay gợi ý.
 
 Hãy trả lời bằng Markdown theo đúng cấu trúc sau:
 ## **BÀI TOÁN:** **Tiêu đề bài toán viết hoa ngắn gọn ở đây**
