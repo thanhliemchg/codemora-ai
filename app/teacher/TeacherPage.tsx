@@ -816,6 +816,27 @@ reader.readAsArrayBuffer(file)
 
 }
 
+const deleteSubmission = async (id: string) => {
+  if (!confirm("Xóa bài này? Không thể khôi phục!")) return
+
+  const res = await fetch("/api/delete-submission", {
+    method: "POST",
+    body: JSON.stringify({ id })
+  })
+
+  const data = await res.json()
+
+  if (data.success) {
+    alert("Đã xóa")
+
+    await loadSubmissions(selectedClass)
+
+    setSelectedSubmission(null)
+  } else {
+    alert("Xóa thất bại")
+  }
+}
+
 async function exportAccounts(){
 
   if(!selectedClass){
@@ -934,14 +955,16 @@ body:JSON.stringify({id})
 
 const result = await res.json()
 
-if(!result.success){
-alert("Lỗi ❌")
-return
+if(result.error){
+  alert(result.error) // 🔥 hiện đúng lỗi
+  return
 }
 
 alert("Đã xoá")
 
-loadStudents(selectedClass,selectedClassName)
+await loadStudents(selectedClass, selectedClassName)
+
+
 }
 
 function exportMarkExcel(){
@@ -2770,15 +2793,28 @@ className={`px-3 py-1 rounded ${
                 {statusMap[s.status] ||"❌ Chưa nộp"}
               </span>
             </td>
-            <td>
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
-              onClick={(e) => {e.stopPropagation()
-                              resetSubmission(s.id)}
-              }
-            >
-              🔄 Reset
-            </button> 
+            <td className="flex gap-2">
+              {/* Reset */}
+              <button
+                className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  resetSubmission(s.id)
+                }}
+              >
+                🔄 Reset
+              </button>
+
+              {/* Xóa */}
+              <button
+                className="bg-black text-white px-2 py-1 rounded text-sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteSubmission(s.id)
+                }}
+              >
+                🗑 Xóa
+              </button>
             </td>
           </tr>
         ))}
@@ -2824,14 +2860,29 @@ className={`px-3 py-1 rounded ${
       <div className="text-xs bg-gray-100 px-2 py-1 rounded">
         {statusMap[s.status]}
       </div>
-      <button
-      className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
-      onClick={(e) => {e.stopPropagation()
-                              resetSubmission(s.id)}
-              }
-    >
-      🔄 Reset
-    </button>
+        <div>
+              {/* Reset */}
+              <button
+                className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  resetSubmission(s.id)
+                }}
+              >
+                🔄 Reset
+              </button>
+
+              {/* Xóa */}
+              <button
+                className="bg-black text-white px-2 py-1 rounded text-sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteSubmission(s.id)
+                }}
+              >
+                🗑 Xóa
+              </button>
+        </div>
     </div>
 
     <div className="text-sm text-gray-500 mt-1">
@@ -2883,8 +2934,8 @@ className={`px-3 py-1 rounded ${
   </div>
 
   {/* TITLE */}
-  <div className="font-bold text-gray-800 border-b pb-2">
-    📄 Chi tiết bài làm
+  <div className="font-bold text-blue-800 border-b pb-2">
+    📄 Chi tiết:
   </div>
 
 
