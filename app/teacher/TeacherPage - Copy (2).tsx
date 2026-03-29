@@ -23,7 +23,7 @@ export default function Teacher(){
 const router = useRouter()
 const searchParams = useSearchParams()
 const tabQuery = searchParams.get("tab")
-const [assignedStudents, setAssignedStudents] = useState<any[]>([])
+
 
 const rawtab = searchParams.get("tab")
 const tab = rawtab || "classes"
@@ -514,38 +514,6 @@ const resetSubmission = async (id: string) => {
   }
 }
 
-async function removeStudent(studentId: string) {
-  if (!confirm("Xoá học sinh khỏi bài này?")) return
-
-  console.log({
-    exerciseId: selectedExerciseId,
-    studentId
-  })
-
-  const res = await fetch("/api/remove-student-from-exercise", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      exerciseId: selectedExerciseId,
-      studentId
-    })
-  })
-
-  const data = await res.json()
-
-  if (data.success) {
-    alert("Đã xoá")
-
-    // reload lại danh sách
-    loadAssignedStudents(selectedExerciseId)
-  } else {
-    alert(data.error || "Lỗi server")
-  }
-  await loadExercises(selectedClass,selectedClassName)
-}
-
 async function loadPairCode(p: any) {
 
   const res = await fetch("/api/get-pair-code", {
@@ -1028,24 +996,6 @@ XLSX.utils.book_append_sheet(workbook,worksheet,"Bai_nop")
 
 XLSX.writeFile(workbook,"bai_nop_lop.xlsx")
 
-}
-
-async function loadAssignedStudents(exerciseId: string) {
-  const res = await fetch("/api/get-students-by-exercise", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ exerciseId })
-  })
-
-  const data = await res.json()
-
-  if (data.success) {
-    setAssignedStudents(data.students)
-  } else {
-    alert("Lỗi load danh sách học sinh")
-  }
 }
 
 async function loadSubmissions(class_id:any,name:any, exercise_id?:string){
@@ -2241,8 +2191,6 @@ Giao bài cho học sinh
           className="text-blue-600 cursor-pointer hover:underline"
           onClick={() => {
             setSelectedExercise(e)
-            setSelectedExerciseId(e.id)
-            loadAssignedStudents(e.id)
             setTests(Array.isArray(e.test_cases) ? e.test_cases : [])
             setEditContent(e.exercise)
             setShowModal(true)
@@ -2350,38 +2298,7 @@ Giao bài cho học sinh
         setTests={setTests}
         exercise={editContent}
       />
-      <h3 className="font-bold mt-4 flex items-center gap-2">
-          🎓 Học sinh đã được giao bài
-      </h3>
 
-      <div className="max-h-40 overflow-auto border rounded p-2 mt-2">
-        {assignedStudents.length === 0 ? (
-          <p className="text-gray-500 text-sm">
-            Chưa có học sinh nào
-          </p>
-        ) : (
-          assignedStudents.map((s: any, i: number) => (
-            <div
-              key={i}
-              className="flex justify-between border-b py-1 text-sm"
-            >
-              <div>
-                <div>{s.name}</div>
-                <div className="text-gray-500 text-xs">
-                  {s.email}
-                </div>
-              </div>
-
-              <button
-                onClick={() => removeStudent(s.id)}
-                className="text-red-500 text-xs"
-              >
-                Xoá
-              </button>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   </div>
 )}
