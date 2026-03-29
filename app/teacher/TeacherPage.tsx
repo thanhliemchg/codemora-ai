@@ -4,6 +4,7 @@ import { useState,useEffect, use } from "react"
 import * as XLSX from "xlsx"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import remarkBreaks from "remark-breaks"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useRef } from "react"
 import mammoth from "mammoth"
@@ -1976,7 +1977,7 @@ dangerouslySetInnerHTML={{ __html: exercise }}
 
 ) : (
 
-<ReactMarkdown remarkPlugins={[remarkGfm]}>
+<ReactMarkdown remarkPlugins={[remarkBreaks]}>
 {exercise}
 </ReactMarkdown>
 
@@ -2286,7 +2287,7 @@ Giao bài cho học sinh
 
       {/* PREVIEW */}
       <div className="bg-gray-50 p-3 rounded mb-4">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown remarkPlugins={[remarkBreaks]}>
           {editContent}
         </ReactMarkdown>
       </div>
@@ -2941,7 +2942,7 @@ className={`px-3 py-1 rounded ${
 
 
 {/* ĐỀ */}
-<ReactMarkdown remarkPlugins={[remarkGfm]}>
+<ReactMarkdown remarkPlugins={[remarkBreaks]}>
 {selectedSubmission.exercise || "Không có đề"}
 </ReactMarkdown>
 
@@ -2981,7 +2982,7 @@ className={`px-3 py-1 rounded ${
       {/* 🔥 AI FEEDBACK */}
       
       <div className="prose prose-sm max-w-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown remarkPlugins={[remarkBreaks]}>
           {feedback || "Chưa có nhận xét từ AI"}
         </ReactMarkdown>
       </div>

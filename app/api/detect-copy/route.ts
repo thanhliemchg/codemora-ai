@@ -114,7 +114,7 @@ export async function GET(req: Request) {
       .select("student_id, code")
       .eq("class_id", class_id)
       .eq("exercise_id", exercise_id)
-      .eq("status", "submitted")
+      .not("code", "is",null)
 
     if (!subs || subs.length === 0) {
       return NextResponse.json([])

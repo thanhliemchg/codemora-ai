@@ -40,37 +40,75 @@ export async function POST(req: Request){
     const promptExercise = `
 Tạo một bài lập trình mới với độ khó tương đương nhưng khác hoàn toàn.
 
-QUY TẮC BẮT BUỘC:
-1. Chỉ viết theo đúng cấu trúc dưới đây.
-2. Không được lặp lại nội dung.
-3. Không dùng ký hiệu LaTeX như A_{i-1}.
-4. Chỉ dùng dạng chỉ số mảng như: A[i], A[i-1], A[i+1].
-5. Nội dung ngắn gọn, dễ hiểu cho học sinh.
-6. Không viết lại cùng một dòng hai lần.
-7. Trước khi trả lời hãy kiểm tra và loại bỏ mọi nội dung bị lặp.
-8. Khi ra bài tập phải tuân thủ các điều kiện sau:
-- Chỉ nên ra bài cơ bản khống quá khó và sinh test dễ và bám sát sách giáo khoa tin học 10, 11 kết nối tri thức với cuộc sống;
-- Không được ra với số lượng N (số phần tử) quá lớn, càng nhỏ càng tốt; nếu là dãy số thì số lượng phần tử và tối đa N<= 100, N<=200, N<=500 hoặc nhỏ hơn nữa.
-9. Sau chữ "Input" dữ liệu phải xuống dong, Sau "Output" cũng phải xuống dòng
-10. Không được đưa ra lời giải hay gợi ý.
+========================
+YÊU CẦU BẮT BUỘC (TUÂN THỦ TUYỆT ĐỐI):
 
-Hãy trả lời bằng Markdown theo đúng cấu trúc sau:
+- Không dùng LaTeX
+- Không lặp nội dung
+- Không viết 2 dòng giống nhau
+- Nội dung ngắn gọn, dễ hiểu
+- Không mô tả mơ hồ
+- Dữ liệu nhỏ, N <= 100 hoặc <= 200
+
+========================
+FORMAT MARKDOWN BẮT BUỘC (PHẢI GIỐNG 100%):
+
 ## **BÀI TOÁN:** **Tiêu đề bài toán viết hoa ngắn gọn ở đây**
-Mô tả bài toán rõ ràng (không cần ghi chữ mô tả).
-## **Yêu cầu:** 
-Mô tả ngắn gọn yêu cầu học sinh cần làm gì.
-## **Dữ liệu vào:**
-Dòng .....
-## **Kết quả:**
-In ra kết quả của bài toán.
-## **Ví dụ:**
-- Input: 
 
-- Output: 
+<viết nội dung bài toán rõ ràng, KHÔNG ghi chữ "Mô tả">
+
+## **Yêu cầu:** 
+<viết rõ học sinh cần làm gì>
+
+## **Dữ liệu vào:**
+Dòng 1: ...
+Dòng 2: ...
+
+## **Kết quả:**
+<viết rõ kết quả cần in>
+
+## **Ví dụ:**
+Input:
+5
+20 25 18 27 22
+
+Output:
+22.40
+2
+
+## **Ràng buộc**:
+<ghi rõ>
+
+
 
 ## **Giải thích:**
 Giải thích ví dụ.
-## **Ràng buộc** (nếu có)
+
+========================
+QUY TẮC BẮT BUỘC:
+
+- Input nếu đầu bài có dòng thứ 1, 2...thì phải xuống dòng THẬT (mỗi dòng 1 dòng riêng)
+- Output phải đúng 100% theo Input
+- Không được sai format Markdown trên
+- Không thêm ký tự thừa
+- Không thêm phần ngoài cấu trúc đã yêu cầu
+
+========================
+KIỂM TRA LẠI TRƯỚC KHI TRẢ KẾT QUẢ:
+
+- Nếu Input chưa xuống dòng → phải sửa lại
+- Nếu format sai → phải sửa lại
+- Chỉ trả về kết quả cuối cùng đúng format
+
+========================
+YÊU CẦU NÂNG CAO:
+
+- Đảm bảo ví dụ luôn có đúng số dòng như phần "Dữ liệu vào"
+- Không được để sai lệch giữa mô tả và ví dụ
+- Output phải khớp hoàn toàn
+
+========================
+Trả về CHÍNH XÁC nội dung, không giải thích thêm.
 
 ${base}
 `

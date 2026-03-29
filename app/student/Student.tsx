@@ -4,6 +4,7 @@ import { useState,useEffect} from "react"
 import CodeEditor from "../components/CodeEditor"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import remarkBreaks from "remark-breaks"
 import { setTooltipSettingsState } from "recharts/types/state/tooltipSlice"
 import { s, sub } from "framer-motion/client"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -678,7 +679,7 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
 
         {teacherExercise ? (
          <div className="prose prose-sm max-w-none break-words">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown remarkPlugins={[remarkBreaks]}>
             {teacherExercise}
           </ReactMarkdown>
         </div>
@@ -700,7 +701,7 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
     <h2 className="font-bold mb-3 text-black">
       Bài tập tự sinh
     </h2>
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+    <ReactMarkdown remarkPlugins={[remarkBreaks]}>
       {exercise}
     </ReactMarkdown>
 
@@ -713,7 +714,7 @@ ${submitting || (submitType==="teacher" && isSubmittedCurrent)
       AI Feedback
     </h2>
 
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+    <ReactMarkdown remarkPlugins={[remarkBreaks]}>
       {result}
     </ReactMarkdown>
 
@@ -853,7 +854,7 @@ onClick={()=>setSelectedHistory(h)}
 
 <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
 
-<ReactMarkdown remarkPlugins={[remarkGfm]}>
+<ReactMarkdown remarkPlugins={[remarkBreaks]}>
 {selectedHistory.exercise || "Không có đề bài"}
 </ReactMarkdown>
 
@@ -989,7 +990,7 @@ Trạng thái
       <h3 className="font-bold mb-2">🤖 AI nhận xét</h3>
 
       <div className="prose prose-sm max-w-none">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown remarkPlugins={[remarkBreaks]}>
           {feedback}
         </ReactMarkdown>
       </div>
@@ -1046,7 +1047,7 @@ Trạng thái
 
 <div className="bg-gray-50 border p-4 rounded-lg">
 
-<ReactMarkdown remarkPlugins={[remarkGfm]}>
+<ReactMarkdown remarkPlugins={[remarkBreaks]}>
 {selectedHistory.teacher_feedback || "Chưa có"}
 </ReactMarkdown>
 
@@ -1075,7 +1076,7 @@ Trạng thái
 Bài tập tự sinh bằng AI
 </h2>
 
-<ReactMarkdown remarkPlugins={[remarkGfm]}>
+<ReactMarkdown remarkPlugins={[remarkBreaks]}>
 {exercise}
 </ReactMarkdown>
 

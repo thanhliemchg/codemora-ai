@@ -10,9 +10,10 @@ export async function POST(req: Request) {
   try {
 
     const body = await req.json()
-    const { a_id, b_id, exercise_id } = body
+    const { a_id, b_id, exercise_id} = body
 
     if (!a_id || !b_id || !exercise_id) {
+      console.error("Mising:", {a_id, b_id, exercise_id})
       return NextResponse.json({
         error: "Thiếu dữ liệu"
       })
@@ -25,8 +26,8 @@ export async function POST(req: Request) {
       .select("student_id, code, language, created_at")
       .in("student_id", [a_id, b_id])
       .eq("exercise_id", exercise_id)
-      .eq("status", "submitted")
-      .order("created_at", { ascending: false }) // 🔥 lấy bài mới nhất
+      .not("code", "is",null)
+      
 
     if (error) {
       console.error("❌ SUB QUERY ERROR:", error)

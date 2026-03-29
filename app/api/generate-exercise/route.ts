@@ -44,8 +44,9 @@ In ra kết quả của bài toán.
 
 ## **Giải thích:**
 Giải thích ví dụ.
-
+## **Ràng buộc** (nếu có)
 `
+
 const res = await fetch(
 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
 {
