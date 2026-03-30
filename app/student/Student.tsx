@@ -1016,9 +1016,20 @@ Trạng thái
 
               {!t.passed && (
                 <div className="text-sm mt-1">
-                  <p><b>Input:</b> {t.input}</p>
-                  <p><b>Expected:</b> {t.expected}</p>
-                  <p><b>Output:</b> {t.output}</p>
+                  <p><b>Input:</b></p>
+                  <pre className="bg-gray-100 p-2 rounded whitespace-pre-wrap">
+                    {t.input}
+                  </pre>
+
+                  <p><b>Expected:</b></p>
+                  <pre className="bg-gray-100 p-2 rounded whitespace-pre-wrap">
+                    {t.expected}
+                  </pre>
+
+                  <p><b>Output:</b></p>
+                  <pre className="bg-gray-100 p-2 rounded whitespace-pre-wrap">
+                    {t.output}
+                  </pre>
                 </div>
               )}
             </div>
