@@ -45,7 +45,7 @@ const [teacherExercises,setTeacherExercises] = useState<any[]>([])
 const [selectedExercise,setSelectedExercise] = useState<any>(null)
 
 const [copyGroups,setCopyGroups] = useState([])
-
+const [loadingCopy, setLoadingCopy] = useState(false)
 const [students,setStudents] = useState({
 pending:[],
 active:[]
@@ -1138,20 +1138,27 @@ async function saveScore(id:any, score:any){
   setLoadingScore(false)
 }
 
-async function detectCopy(){
-
-  if(!selectedExercise?.id){
+async function detectCopy() {
+  if (!selectedExercise?.id) {
     alert("👉 Vui lòng chọn bài trước khi quét")
     return
   }
 
-  const res = await fetch(
-    `/api/detect-copy?class_id=${selectedClass}&exercise_id=${selectedExercise.id}`
-  )
+  setLoadingCopy(true)
 
-  const data = await res.json()
+  try {
+    const res = await fetch(
+      `/api/detect-copy?exercise_id=${selectedExercise.id}`
+    )
 
-  setCopyGroups(data)
+    const data = await res.json()
+    setCopyGroups(data)
+
+  } catch (e) {
+    alert("❌ Lỗi khi quét")
+  }
+
+  setLoadingCopy(false)
 }
 async function loadCopy(){
 
@@ -2460,19 +2467,16 @@ console.log("EXERCISES",exercises)
   )}
 
   {/* ================= BUTTON ================= */}
-  <button
-    onClick={detectCopy}
-    className="bg-red-600 text-white px-3 py-1 rounded mb-4"
-  >
-    🔍 Quét copy bài này
-  </button>
+<button onClick={detectCopy}
+  className="bg-red-600 text-white px-3 py-1 rounded mb-4"
+>
+  {loadingCopy ? "⏳ Đang quét..." : "🔍 Quét copy bài này"}
+</button>
 
   {/* ================= KẾT QUẢ ================= */}
-  {copyGroups.length === 0 && (
-    <div className="text-gray-400">
-      👉 Chưa có dữ liệu, hãy chọn bài và bấm quét
-    </div>
-  )}
+   {!loadingCopy && copyGroups.length === 0 && (
+  <p>👉 Không phát hiện bài làm hoặc chưa có dữ liệu</p>
+)}
 
   {copyGroups.map((g:any,i)=>(
 

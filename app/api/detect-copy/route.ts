@@ -104,7 +104,7 @@ export async function GET(req: Request) {
     const class_id = searchParams.get("class_id")
     const exercise_id = searchParams.get("exercise_id")
 
-    if (!class_id || !exercise_id) {
+    if (!exercise_id) {
       return NextResponse.json([])
     }
 
@@ -112,7 +112,6 @@ export async function GET(req: Request) {
     const { data: subs } = await supabase
       .from("submissions")
       .select("student_id, code")
-      .eq("class_id", class_id)
       .eq("exercise_id", exercise_id)
       .not("code", "is",null)
 
