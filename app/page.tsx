@@ -141,7 +141,7 @@ Output:
         <div className="bg-white/10 backdrop-blur rounded-2xl p-10 max-w-xl mx-auto border border-white/20">
 
           <h2 className="text-2xl font-bold mb-4">
-            Sẵn sàng nâng cấp việc dạy lập trình?
+            Sẵn sàng nâng cấp việc dạy và học lập trình?
           </h2>
 
           <button
@@ -149,7 +149,7 @@ Output:
             className="px-8 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-indigo-500 
             hover:scale-105 transition shadow-lg"
           >
-            🚀 Bắt đầu miễn phí
+            🚀 Bắt đầu
           </button>
 
         </div>
