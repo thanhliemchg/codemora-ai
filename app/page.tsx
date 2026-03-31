@@ -140,8 +140,8 @@ Output:
 
         <div className="bg-white/10 backdrop-blur rounded-2xl p-10 max-w-xl mx-auto border border-white/20">
 
-          <h2 className="text-1xl font-bold mb-4">
-            Sẵn sàng nâng cấp việc dạy và học lập trình?
+          <h2 className="text-2xl font-bold mb-4">
+            Sẵn sàng nâng cấp việc dạy lập trình?
           </h2>
 
           <button
