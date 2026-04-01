@@ -136,7 +136,7 @@ const [statMode,setStatMode] = useState("class")
 const statStudents = stats.students || []
 
 const sortedExercises = [...(exercises || [])].sort(
-  (a, b) => new Date(b.created_at).getTime() - new Date(b.created_at).getTime()
+  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 )
 
 
@@ -1030,6 +1030,41 @@ XLSX.writeFile(workbook,"bai_nop_lop.xlsx")
 
 }
 
+async function handleDeleteExercise(id: string) {
+  const ok = confirm("❗ Xoá bài này khỏi tất cả học sinh?")
+  if (!ok) return
+
+  try {
+    const res = await fetch("/api/delete-exercise", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ exerciseId: id })
+    })
+
+    if (!res.ok) throw new Error("Request failed")
+
+    const data = await res.json()
+
+    if (data.error) {
+      alert("❌ " + data.error)
+      return
+    }
+
+    alert("✅ Đã xoá bài")
+
+    // update UI ngay
+    setExercises(prev => prev.filter(e => e.id !== id))
+
+    // reload lại cho chắc
+    await loadExercises()
+
+  } catch (err) {
+    alert("❌ Lỗi server")
+  }
+}
+
 async function loadAssignedStudents(exerciseId: string) {
   const res = await fetch("/api/get-students-by-exercise", {
     method: "POST",
@@ -1180,21 +1215,21 @@ async function loadGroupCode(student_ids:any){
   setGroupCodes(data)
 }
 
-async function loadExercises(class_id:any,name:any){
+async function loadExercises(class_id: any, name: any) {
+  setSelectedClass(class_id);
+  setSelectedClassName(name);
 
-setSelectedClass(class_id)
-setSelectedClassName(name)
+  const res = await fetch(`/api/class-generated-exercises?class_id=${class_id}`);
+  const data = await res.json();
 
-//changeTab("exercise")
+  // Kiểm tra nếu data là mảng thì mới set, nếu không thì set mảng rỗng
+  const safeData = Array.isArray(data) ? data : [];
+  setExercises(safeData);
 
-const res = await fetch(`/api/class-generated-exercises?class_id=${class_id}`)
-const data = await res.json()
-
-setExercises(data)
-if (data.length > 0) {
-  setSelectedExercise(data[0])
-}
-console.log("EXERCISES DATA:", data)
+  if (safeData.length > 0) {
+    setSelectedExercise(safeData[0]);
+  }
+  console.log("EXERCISES DATA:", data);
 }
 
 async function createExercise(){
@@ -2228,12 +2263,13 @@ Giao bài cho học sinh
 <thead className="bg-blue-300 text-gray-800">
 <tr>
 
-<th className="p-3 text-center wrap-text">Đề bài</th>
+<th className="p-3 text-left wrap-text">Đề bài</th>
 
 <th className="p-3 text-center wrap-text">Số HS</th>
 
 <th className="p-3 text-center wrap-text">Ngày giao</th>
 
+<th className="p-3 text-center wrap-text">Hành động</th>
 
 </tr>
 </thead>
@@ -2243,7 +2279,7 @@ Giao bài cho học sinh
   {sortedExercises.map((e: any, index: number) => (
     <tr key={e.id} className="border-b hover:bg-gray-50">
 
-      <td className="px-3 py-2 text-gray-700">
+      <td className="px-3 py-2 text-gray-700 text-left">
         <span
           className="text-blue-600 cursor-pointer hover:underline"
           onClick={() => {
@@ -2270,8 +2306,17 @@ Giao bài cho học sinh
           : "-"
         }
       </td>
-
+      <td className="text-center">
+  <button
+    onClick={() => handleDeleteExercise(e.id)}
+    className="p-2 rounded hover:bg-red-100 transition"
+    title="Xóa bài"
+  >
+    <span className="text-red-500 text-lg">🗑️</span>
+  </button>
+</td>
     </tr>
+    
   ))}
 </tbody>
 
