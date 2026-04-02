@@ -2926,10 +2926,10 @@ className={`px-3 py-1 rounded ${
                 {statusMap[s.status] ||"❌ Chưa nộp"}
               </span>
             </td>
-            <td className="text-center flex gap-2">
+            <td className="flex gap-2">
               {/* Reset */}
               <button
-                className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                className="bg-red-500 text-white px-2 py-1 rounded text-sm text-center"
                 onClick={(e) => {
                   e.stopPropagation()
                   resetSubmission(s.id)
@@ -2940,7 +2940,7 @@ className={`px-3 py-1 rounded ${
 
               {/* Xóa */}
               <button
-                className="bg-black text-white px-2 py-1 rounded text-sm"
+                className="bg-black text-white px-2 py-1 rounded text-sm text-center"
                 onClick={(e) => {
                   e.stopPropagation()
                   deleteSubmission(s.id)
