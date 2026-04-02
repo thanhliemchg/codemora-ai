@@ -2926,7 +2926,7 @@ className={`px-3 py-1 rounded ${
                 {statusMap[s.status] ||"❌ Chưa nộp"}
               </span>
             </td>
-            <td className="text-xs px-2 py-1 rounded flex gap-2">
+            <td className="text-xs px-2 py-1 rounded ">
               {/* Reset */}
               <button
                 className="bg-red-500 text-white text-center px-2 py-1 rounded text-sm"
